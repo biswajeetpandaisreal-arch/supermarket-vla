@@ -1,0 +1,151 @@
+\chapter{Introduction}
+\label{chap:intro}
+
+\section{Motivation}
+\label{sec:motivation}
+Retrieving items from a shopping list is a deceptively difficult robotics task.
+It requires three capabilities at once: \emph{perception}, to see and identify
+the correct object among clutter on a shelf; \emph{language understanding}, to
+determine which item a natural-language request refers to; and
+\emph{manipulation}, to physically grasp the object and place it accurately in a
+receptacle. Traditionally, each of these is addressed by a separate, hand-engineered
+subsystem, and integrating them is brittle and labour-intensive.
+
+The task is also of practical interest. Service and retail robotics --- stocking
+shelves, fulfilling orders, assisting shoppers --- is a rapidly growing application
+area in which robots must operate in unstructured, human-centric environments and
+respond to natural requests. A robot that can be told, in ordinary language, what to
+fetch, and that can then perceive and manipulate everyday products, is a building
+block for such applications. Studying this capability in simulation, under a tight
+hardware budget, is a way to understand what is achievable with accessible resources
+before committing to expensive hardware and data collection.
+
+Vision--Language--Action (VLA) models offer an appealing alternative. By taking a
+vision--language backbone that has already learned to perceive images and follow
+language, and extending its output space from text to robot actions, a
+\emph{single} network can map camera images and an instruction directly to motor
+commands \parencite{zitkovich2023rt2, sapkota2026vla}. This promises generalist
+robot control without a bespoke pipeline for every object and instruction.
+
+The practical obstacle is scale. Capable VLAs typically contain billions of
+parameters and are trained and deployed on large accelerators. For a student or a
+low-cost robot, the relevant question is not ``what is the largest possible
+model?'' but ``\emph{what can be fine-tuned and run on a single consumer GPU?}''
+This thesis takes that constraint seriously --- a 12~GB GPU --- and asks whether a
+compact VLA can nonetheless perform a useful, language-driven manipulation task
+reliably.
+
+The constraint is not merely a matter of convenience. It changes the design space:
+it rules out the largest and most capable models, forces a choice about which parts
+of a pretrained network to adapt, and makes data efficiency and evaluation
+discipline decisive rather than optional. A recurring finding in this thesis, and in
+the recent literature, is that under such constraints the quality of the data and of
+the evaluation matters more than the raw capacity of the model. The work is
+therefore as much about \emph{methodology} --- how demonstrations are collected, how
+success is defined and measured, and how a deployment checkpoint is chosen --- as it
+is about the model itself.
+
+\section{Problem statement and scope}
+\label{sec:problem}
+The task studied in this thesis is a language-conditioned pick-and-place in a
+simulated supermarket. A mobile manipulator --- a UR10e arm mounted on an Omron
+mobile base, fitted with a Robotiq two-finger gripper --- is given a text
+instruction naming a grocery item (for example, ``pick up the milk carton and
+place it in the basket''). It must locate that item on a shelf, grasp it, and
+place it in an onboard basket. The work is conducted entirely in the MuJoCo
+physics simulator, which provides a safe, reproducible and low-cost setting for
+benchmarking manipulation policies before they reach hardware
+\parencite{todorov2012mujoco, nasiriany2024robocasa}. The base remains parked
+during each pick; language-guided navigation of the store is identified as future
+work (\refsec{sec:future}).
+
+\section{Aim and objectives}
+\label{sec:aims}
+The aim of this thesis is to determine whether a compact, openly available VLA can
+be fine-tuned and deployed, under a 12~GB GPU constraint, to perform reliable
+language-conditioned grasping of everyday objects in simulation. The objectives
+are:
+\begin{enumerate}
+    \item To build a reproducible simulated supermarket environment and a scripted
+    expert capable of generating clean demonstrations of language-labelled
+    pick-and-place (\refChap{chap:methodology}).
+    \item To fine-tune the compact SmolVLA model on these demonstrations within the
+    hardware budget, and to identify the training configuration that fits and
+    generalises.
+    \item To evaluate the resulting policy rigorously --- using closed-loop success
+    rate, adequate sample sizes and confidence intervals --- and to select the
+    deployed model by task success rather than training loss.
+    \item To diagnose the dominant failure modes and to improve the policy through
+    targeted, evidence-based changes.
+    \item To assess whether the policy genuinely uses the language instruction, and
+    to demonstrate an end-to-end system that collects a multi-item list.
+\end{enumerate}
+
+\section{Research questions}
+\label{sec:rqs}
+The objectives above are framed by four research questions that the thesis answers
+empirically:
+\begin{description}
+    \item[RQ1 (Feasibility).] Can a compact, openly available VLA be fine-tuned and
+    run on a single 12~GB GPU to perform language-conditioned pick-and-place at a
+    useful success rate? (\refsec{sec:results-headline})
+    \item[RQ2 (Model vs.\ methodology).] At this data and hardware scale, do
+    improvements come more from model capacity or from the quality of the data,
+    metrics and evaluation? (\refsec{sec:results-journey}, \refsec{sec:results-diagnosis})
+    \item[RQ3 (Grounding).] Does the fine-tuned policy genuinely condition on the
+    language instruction, or does it exploit a fixed spatial correlate?
+    (\refsec{sec:results-language})
+    \item[RQ4 (Failure structure).] When the policy fails, where in the
+    perception--language--grasp--place chain does it fail, and can targeted,
+    evidence-based changes correct it without increasing model size?
+    (\refsec{sec:results-diagnosis})
+\end{description}
+These questions recur throughout, and are revisited together in the synthesis of
+\refsec{sec:results-synthesis} and the conclusions of \refChap{chap:conclusions}.
+
+\section{Contributions}
+\label{sec:contributions}
+The principal contributions of this thesis are:
+\begin{itemize}
+    \item A complete, reproducible pipeline --- scripted expert, demonstration
+    collection, SmolVLA fine-tuning and closed-loop evaluation --- that operates
+    within 12~GB of GPU memory by freezing the vision--language backbone and
+    training only the action expert.
+    \item A rigorous evaluation demonstrating an 80\% task-completion rate
+    (95\% Wilson confidence interval 70--87) over 320 closed-loop trials, with the
+    deployed checkpoint selected by task success rather than loss.
+    \item A documented failure analysis that raised placement success from 0\% to
+    80\% by diagnosing near-miss behaviour and addressing observability and
+    episode-boundary issues, rather than by scaling the model or blindly
+    retraining.
+    \item Evidence that fixing the success metric and improving demonstration
+    variety yielded larger gains than model choice at this data and hardware
+    regime, echoing findings in the wider literature
+    \parencite{black2025pi05, bharadhwaj2024roboagent}.
+    \item A demonstration of genuine language grounding and a light-weight
+    interpretability view of the policy's predicted action plan.
+    \item A functioning end-to-end orchestrator that collects a multi-item shopping
+    list, together with an honest characterisation of where it degrades (the
+    distribution shift induced by an accumulating basket) and how to remedy it.
+\end{itemize}
+Collectively, these contributions are less about a new model or algorithm than about
+a disciplined account of what a compact VLA can and cannot do under a realistic
+hardware constraint, and about the methodological choices --- in data, metrics and
+evaluation --- that determine the difference between an apparent result and a real one.
+The recurring finding, established across the pilot and the main study, is that at this
+scale those choices dominate model capacity, which is a practically useful message for
+anyone building robots without access to frontier compute.
+
+\section{Thesis structure}
+\label{sec:structure}
+\refChap{chap:background} reviews VLA models, the specific architecture of
+SmolVLA, the ACT baseline, and the simulation and benchmark context.
+\refChap{chap:methodology} describes the simulation environment, the scripted
+expert, demonstration collection, the fine-tuning procedure and the evaluation
+methodology. \refChap{chap:results} presents the results, including the journey
+from the RoboCasa benchmark to the deployed system, the headline and per-item
+success rates, the failure analysis, the language-grounding test, checkpoint
+selection and the end-to-end orchestrator. \refChap{chap:discussion} interprets
+these results, states the limitations honestly and outlines the ideal
+unconstrained system. \refChap{chap:conclusions} concludes and describes future
+work.

@@ -1,0 +1,88 @@
+This appendix collects implementation details for reproducibility.
+
+\section{Software and hardware}
+\begin{itemize}
+    \item Simulator: MuJoCo~3.9 (EGL offscreen rendering).
+    \item Learning framework: Hugging Face LeRobot \parencite{cadene2024lerobot};
+    policy \texttt{smolvla\_base}.
+    \item Inverse kinematics: \texttt{mink} (MuJoCo-native differential IK).
+    \item Assets: robosuite grocery and Omron meshes; UR10e and Robotiq 2F-85 from
+    the MuJoCo Menagerie.
+    \item Hardware: NVIDIA RTX~A2000 (12~GB).
+\end{itemize}
+
+\section{Training hyper-parameters}
+\begin{table}[ht]
+\caption{SmolVLA fine-tuning configuration.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{ll}
+\toprule
+Setting & Value \\
+\midrule
+Base checkpoint & \texttt{smolvla\_base} \\
+Backbone & Frozen (action expert trained) \\
+Batch size & 8 \\
+Optimisation steps & 20{,}000 \\
+Checkpoints saved & every 5{,}000 steps (5k/10k/15k/20k) \\
+Action chunk length & 50 \\
+Wall-clock training time & $\approx$ 4 hours \\
+Peak GPU memory & $\approx$ 3~GB \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:hyperparams}
+\end{table}
+
+\section{Dataset}
+\begin{itemize}
+    \item 240 successful demonstrations (60 per item $\times$ 4 items:
+    cola can, water bottle, milk carton, bread loaf).
+    \item Per step: three RGB images ($96\times96$; wrist, scene, basket), 7-D state
+    (6 arm joints + gripper), 7-D action, and a language instruction.
+    \item $\approx$ 20 instruction paraphrases; per-episode positional jitter.
+    \item Recorded at 100~Hz, subsampled $5\times$ to 20~fps; LeRobot dataset format
+    (parquet + video); per-item validation hold-out.
+    \item Demonstrations end at placement (clean episode boundary).
+\end{itemize}
+
+\section{Evaluation protocol}
+\begin{itemize}
+    \item Closed-loop rollouts at $\approx$ 20~Hz; actions applied directly.
+    \item Metrics: grasp success (item lifted clear of the shelf) and task
+    completion (item at rest inside the basket footprint).
+    \item $\geq 20$ trials per item; fresh seeds and paraphrases per trial.
+    \item Wilson 95\% confidence intervals \parencite{wilson1927ci}.
+    \item Checkpoint selected by closed-loop task success; normalisation statistics
+    loaded from the same checkpoint.
+    \item Multi-checkpoint evaluation: 4 checkpoints $\times$ 4 items $\times$ 20
+    trials $=$ 320 rollouts.
+\end{itemize}
+
+\section{Software pipeline and reproducibility}
+The pipeline is organised as a sequence of small, single-purpose scripts so that each
+stage can be run and verified independently:
+\begin{itemize}
+    \item \texttt{envs/supermarket\_env.py} --- builds the MuJoCo model
+    programmatically and exposes stepping, rendering and introspection helpers.
+    \item \texttt{find\_grasp.py} --- \texttt{mink} inverse-kinematics solvers for grasp
+    and place poses.
+    \item \texttt{scripted\_expert.py} --- the scripted pick-and-place trajectory and
+    the demonstration recorder hook.
+    \item \texttt{collect\_data.py} / \texttt{convert\_to\_lerobot.py} --- demonstration
+    collection and conversion to the LeRobot dataset format.
+    \item \texttt{rollout.py} / \texttt{eval\_checkpoints.py} --- closed-loop evaluation
+    and multi-checkpoint success reporting with Wilson intervals.
+    \item \texttt{shopping\_list.py} --- the menu-driven multi-item orchestrator.
+\end{itemize}
+Headless stages set \texttt{MUJOCO\_GL=egl}; the interactive viewer requires a display
+and must not set that variable. Determinism is controlled per-trial by an explicit
+random seed; because the policy is stochastic, aggregate metrics rather than single
+seeds are the unit of reporting.
+
+\section{Coordinate conventions}
+All positions in the main text are given in the robot base frame (metres): $x$ points
+from the base toward the shelf, $y$ is lateral (positive toward the water bottle,
+negative toward the milk carton), and $z$ is vertical. The five products rest along the
+shelf front at $y\in\{-0.26,-0.13,0.00,0.15,0.34\}$ and the basket centre is at
+approximately $(0.24,0.00)$.

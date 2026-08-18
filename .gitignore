@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Virtual environment (symlink to ../smolvla_ur10e/.venv)
+.venv/
+venv/
+
+# Large regenerable artefacts (NOT committed)
+outputs/train/
+collected_data/
+data/
+thesis.zip
+*.pkl
+*.safetensors
+*.mp4
+
+# Logs / scratch
+*.log
+MUJOCO_LOG.TXT
+scratchpad/
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# LaTeX build artefacts (thesis compiles on Overleaf)
+thesis/*.aux
+thesis/*.bbl
+thesis/*.bcf
+thesis/*.blg
+thesis/*.log
+thesis/*.out
+thesis/*.toc
+thesis/*.lof
+thesis/*.lot
+thesis/*.run.xml
+thesis/*.synctex.gz
+thesis/*.fls
+thesis/*.fdb_latexmk

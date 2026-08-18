@@ -1,0 +1,109 @@
+\chapter{Conclusions and Future Work}
+\label{chap:conclusions}
+
+\section{Conclusions}
+\label{sec:conclusions}
+This thesis asked whether a capable Vision--Language--Action model can be fine-tuned
+and deployed on a single 12~GB consumer GPU to perform reliable, language-driven
+grasping of everyday objects. The answer is yes. Working entirely in the MuJoCo
+simulator, a compact SmolVLA policy was fine-tuned from 240 scripted-expert
+demonstrations --- by freezing the pretrained vision--language backbone and training
+only the action expert --- to pick a named grocery item from a shelf and place it in
+an onboard basket.
+
+The main outcomes are:
+\begin{itemize}
+    \item An 80\% task-completion rate (95\% Wilson CI 70--87) and 92.5\% grasp
+    success, measured over 320 closed-loop trials, with the deployed checkpoint
+    chosen by task success rather than training loss (\refChap{chap:results}).
+    \item A documented failure analysis that raised placement from 0\% to 80\% by
+    diagnosing near-miss behaviour and correcting observability and
+    episode-boundary issues, rather than by scaling the model.
+    \item Direct evidence of genuine language grounding, and a light-weight view of
+    the policy's own predicted action plan.
+    \item The finding --- corroborated by the literature --- that evaluation quality
+    and demonstration variety matter more than model scale in this data and hardware
+    regime.
+\end{itemize}
+
+Taken together, these show that a rigorously evaluated, compact VLA is a practical
+choice under tight hardware constraints, and that careful methodology is what turns
+an initially failing policy into a working one.
+
+More broadly, the thesis offers a template for working under constraint. When the
+largest models are unavailable, progress comes not from waiting for more compute but
+from three disciplines that the results here repeatedly reward: choosing the
+smallest capable model and adapting only the part of it that must change (the action
+mapping, with the perception prior kept frozen); investing in demonstration quality
+and variety rather than volume; and measuring honestly, with task-grounded metrics,
+adequate samples, confidence intervals and success-based model selection. None of
+these is specific to SmolVLA or to a supermarket, and each transfers directly to the
+navigation stage and to eventual hardware. The single most valuable outcome is
+perhaps the failure analysis: it demonstrates that a well-instrumented diagnosis of
+\emph{why} a policy fails is worth more than an untargeted increase in model size or
+data, because it converts an opaque 0\% into a specific, fixable defect.
+
+\section{Future work}
+\label{sec:future}
+The manipulation system studied here is the first half of a two-part vision of a
+supermarket service robot. The clearest next steps are:
+\begin{itemize}
+    \item \textbf{A navigation VLA.} Extend the system with a second,
+    language-guided policy that drives the mobile base between shelves in a store
+    populated by moving, colliding shoppers. Given the safety and latency demands of
+    a dynamic environment, a fast reactive policy (rather than a single large model)
+    is appropriate, mirroring the dual-system argument of
+    \refsec{sec:disc-ideal}.
+    \item \textbf{An orchestrator for full delivery.} Combine navigation and
+    manipulation so that the robot loops a complete shopping list --- navigate, pick,
+    place --- and terminates on delivery, rather than performing one pick at a time.
+    \item \textbf{Closing the multi-item gap.} Fine-tune on demonstrations with
+    varied, non-empty basket contents to remove the distribution shift that reduces
+    multi-item reliability (\refsec{sec:disc-limits}).
+    \item \textbf{Strengthening weak items and adding cereal.} Item-specific grasp
+    tuning for the milk carton, and a wider or alternative grip for the cereal box.
+    \item \textbf{Toward hardware.} Domain randomisation and fine-tuning on real
+    demonstrations (for example on a low-cost arm) to test sim-to-real transfer,
+    which is out of scope for the present simulation study.
+\end{itemize}
+
+\subsection{The navigation stage in more detail}
+\label{sec:future-nav}
+The navigation stage is the most substantial extension and deserves elaboration,
+because it raises problems the manipulation stage does not. Where manipulation is
+quasi-static and the environment is fixed during a pick, navigation is dynamic:
+shoppers move and may collide with the base, so the policy must be reactive and
+operate under a real-time constraint. This changes the appropriate design. In
+manipulation, executing a long 50-step action chunk before re-planning is beneficial,
+because it yields smooth motion in a static scene; in navigation, committing to a long
+horizon in a changing scene is dangerous, so a much shorter execution horizon (or
+real-time re-planning) is required --- an instance of the non-monotonic
+horizon effect established in the literature \cite{wang2026vlalimits}. The methodology
+would nonetheless mirror the manipulation pipeline: a scripted \emph{reactive
+navigator} (for example a potential-field or sampling-based local planner that avoids
+moving obstacles while heading to a goal shelf) would generate demonstrations of
+language-goal-directed driving through a crowd; a navigation VLA would be fine-tuned on
+these; and it would be evaluated closed-loop with success (reaching the goal without
+collision) reported over many trials with confidence intervals, exactly as here.
+
+Two further components complete the vision. First, an \emph{orchestrator} would loop
+the full shopping list --- for each item, navigate to the relevant shelf, execute a
+pick, and place --- terminating on delivery; this is a comparatively simple
+sequencing layer over the two learned policies, and a first version already exists for
+the manipulation-only case (\refsec{sec:results-orchestrator}). Second, the safety and
+latency demands of driving near people argue for the dual-system architecture
+discussed in \refsec{sec:disc-ideal}: a slower high-level module to interpret the list
+and the scene, and a fast reactive policy for collision avoidance. The manipulation
+results in this thesis provide the template --- controlled task, scripted expert,
+frozen-backbone fine-tuning, and rigorous closed-loop evaluation --- that the
+navigation stage would follow.
+
+\subsection{Closing remark}
+\label{sec:closing}
+This thesis set out to test a single, practical proposition: that useful
+language-driven manipulation does not require a frontier-scale model or a
+frontier-scale budget, provided the method is disciplined. The evidence supports it.
+A compact VLA, fine-tuned carefully and evaluated honestly on modest hardware, learned
+to pick named everyday objects and place them reliably, and its one categorical
+failure was resolved not by scaling but by understanding it. That is an encouraging
+result for anyone seeking to build capable robots under real-world constraints.
