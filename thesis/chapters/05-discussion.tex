@@ -1,0 +1,264 @@
+\chapter{Discussion}
+\label{chap:discussion}
+
+\section{Interpretation}
+\label{sec:disc-interp}
+The central finding of this thesis is that a compact VLA can be fine-tuned and
+deployed within a 12~GB GPU budget to perform a language-conditioned manipulation
+task with an 80\% task-completion rate. Two aspects of \emph{how} that result was
+obtained are as important as the number itself.
+
+First, the largest improvements came from \emph{methodology, not model scale}. The
+preliminary study (\refsec{sec:results-journey}) showed that fixing a success-metric
+bug and removing duplicated demonstrations moved real performance far more than any
+architectural change, and the supermarket result was reached with a
+\emph{frozen} backbone and only 240 demonstrations. This is consistent with the
+literature: $\pi_{0.5}$ and RoboAgent both attribute performance to data diversity
+and composition rather than to scaling the action model alone
+\parencite{black2025pi05, bharadhwaj2024roboagent}. The frozen-backbone strategy
+also validates the pretrain-then-post-train view \parencite{xiang2026posttraining}:
+the model arrives already knowing what the objects are and what the words mean, and
+fine-tuning need only supply the motor mapping --- which is why so few
+demonstrations sufficed.
+
+Second, the 0\%-to-80\% improvement (\refsec{sec:results-diagnosis}) came from
+\emph{diagnosis rather than brute force}. Tracing a single failure revealed that
+the policy already understood the task and was near-missing at the final drop; the
+fixes targeted observability and episode boundaries specifically. This is a more
+transferable outcome than a number obtained by simply retraining a larger model.
+
+The language-grounding test (\refsec{sec:results-language}) confirms that the
+policy is genuinely instruction-following: with the scene fixed, changing only the
+instruction word moves the reach to the named item. Together with the graded
+per-item success rates, this rules out the alternative hypothesis that the policy
+executes a single memorised trajectory.
+
+The success of the frozen-backbone strategy deserves emphasis, because it reframes
+what fine-tuning a VLA on a small dataset actually involves. The intuition that a
+policy must ``learn to see'' the objects is misleading in this setting: the backbone
+already sees and reads competently from its pretraining, and the 240 demonstrations
+supply only the missing ingredient --- how this particular embodiment should move to
+act on what is already perceived. This division of labour is what makes the data
+requirement so modest, and it explains why an attempt to retrain the perception on so
+few examples was not merely unnecessary but actively harmful in the pilot, where it
+either exhausted memory or destabilised training. The broader lesson is that, under
+constraint, the right question is not ``how much of the model can I train?'' but ``how
+little of it \emph{must} I train?''. Identifying the smallest sufficient set of
+parameters to adapt --- here, the action expert alone --- is both a memory strategy and a
+regularisation strategy, and it is a transferable principle for fine-tuning large
+pretrained models on limited data in general, not only for this task.
+
+A final interpretive point concerns the decomposition of the task into grasping and
+placing. The results consistently show grasping to be the more nearly solved
+sub-problem (92.5\% overall, 100\% on three of four items) and placing to be the more
+variable one (80\% overall). This is initially counter-intuitive, since grasping ---
+aligning a gripper with an object and securing it --- is usually considered the harder
+manipulation primitive. The explanation is specific to this task: the grasp is
+executed close to the item with a clear eye-in-hand view and benefits directly from
+the scripted expert's carefully tuned per-item poses, whereas the placement is a
+release into a small target at the end of a longer, stochastic motion, where residual
+error has accumulated and (before the basket camera) observability was poorest. The
+implication is that, for this class of task, the marginal engineering effort is better
+spent on the terminal placement --- its observability, its target tolerance, and the
+data around it --- than on the grasp, and this is precisely where the 0\%-to-80\% fixes
+were directed. It is a small but useful design heuristic that generalises beyond the
+present system: instrument and ease the least-observed, highest-variance phase of the
+motion first.
+
+\section{Limitations}
+\label{sec:disc-limits}
+This work has clear and honestly stated limitations.
+
+\paragraph{Weak item.} The milk carton is the weakest item (70\% grasp, 60\%
+placement). It sits at the far edge of the reliable grasp zone and has a less
+forgiving geometry. It placed more reliably at earlier checkpoints, so the weakness
+is recoverable with milk-specific grasp tuning or additional milk demonstrations
+rather than being fundamental.
+
+\paragraph{Multi-item distribution shift.} Single-item picks are reliable, but
+multi-item lists are less so. The policy was trained with an \emph{empty} basket in
+every episode; once the basket already contains an item, the camera view is
+out-of-distribution, which degrades subsequent picks --- the far-edge water bottle
+being most affected. The principled fix is to collect a small batch of
+demonstrations with varied basket contents and fine-tune, teaching the policy to
+ignore what is already collected.
+
+\paragraph{Excluded item.} The cereal box is excluded from training because its
+wide face slips in the two-finger gripper during transport; a wider grasp or a
+different grip strategy would be required.
+
+\paragraph{Simulation only.} All results are in simulation; no sim-to-real transfer
+is claimed. The pipeline is deliberately real-robot-shaped, however --- it uses the
+LeRobot framework and accurate hardware models (UR10e, Robotiq) --- so the same
+code path could fine-tune on real demonstrations.
+
+\paragraph{Stochastic policy.} The flow-matching action expert samples actions
+stochastically, so there is run-to-run variance, especially on the weak items. This
+is exactly why success is reported over 320 trials with confidence intervals rather
+than from single runs.
+
+\paragraph{Checkpoint selection.} Checkpoints are selected by closed-loop success on
+evaluation episodes that use fresh seeds and paraphrases but the same item set; a
+fully locked, never-used-for-selection test set would be a cleaner final estimate.
+
+\paragraph{Inference cost and control rate.} Although the frozen-backbone strategy
+makes \emph{training} inexpensive, \emph{inference} still runs the full
+vision--language backbone every re-planning step, which bounds the achievable control
+rate on modest hardware. This is acceptable for the quasi-static manipulation task
+studied here, where the environment does not change during a pick, but it would be a
+first-order concern for the dynamic navigation stage, where a slow control loop is
+unsafe around moving people. This is a further, concrete argument for the dual-system
+architecture discussed in \refsec{sec:disc-ideal}, in which only a small reflex policy
+need run at high rate. The action-chunk horizon is a further lever: executing more of
+each predicted chunk before re-planning amortises the backbone cost but reduces
+reactivity, the non-monotonic trade-off noted in \refsec{sec:bg-eval}.
+
+\paragraph{Scope of the instruction set.} The language conditioning is exercised over
+roughly twenty paraphrase templates spanning four items; it is not tested on
+open-vocabulary requests, unseen object names, compositional instructions (``the small
+red can''), or referring expressions that require disambiguation. The grounding result
+of \refsec{sec:results-language} should therefore be read as evidence that the policy
+uses the instruction to select among known items, not as a claim of open-world
+language understanding, which would require the far more diverse data discussed as
+future work.
+
+\section{On cross-benchmark evaluation and specialisation}
+\label{sec:disc-crosseval}
+A natural question is whether the supermarket-fine-tuned policy could be evaluated
+directly on the RoboCasa kitchen benchmark, to compare it against the reference
+foundation model. It could be run, but the result would not be meaningful, because
+fine-tuning specialises the policy to a specific \emph{interface} as well as a
+specific task. The action expert and its frozen normalisation statistics are tied to
+this project's embodiment: a seven-dimensional action of six UR10e joint targets
+plus a gripper command, and three cameras (wrist, scene, basket) at a fixed
+resolution and placement. RoboCasa uses a different embodiment (a Franka arm on a
+mobile base), a different action convention and dimensionality, and different camera
+streams and objects. Feeding RoboCasa observations to this policy and applying its
+outputs to a Franka would be an interface mismatch, not a capability test; failure
+there would say nothing about the policy's competence, only that it was asked to
+speak a language it was never trained in. This is why the meaningful RoboCasa
+experiment reported in \refsec{sec:results-journey} is the converse one --- fine-tune
+the small models \emph{on} RoboCasa demonstrations and evaluate \emph{on} RoboCasa,
+which yielded 0/20 --- and why generalisation of the present policy is better assessed
+on held-out variations of its own task (unseen positions, novel paraphrases) than on
+a foreign benchmark. Cross-embodiment transfer is a distinct research problem,
+addressed in the literature by co-training across embodiments
+\cite{black2025pi05}, and is out of scope here.
+
+\section{Toward a real-world system without constraints}
+\label{sec:disc-ideal}
+It is worth asking what an ideal system would look like if compute were not a
+constraint. Notably, the answer is not simply ``a larger model'': some limits are
+physical rather than computational. A very large model cannot run a fast control
+loop, which is unsafe around moving people. The field therefore converges on a
+\emph{dual-system} design --- a large reasoner (``System~2'') for planning the list
+and interpreting a dynamic scene, paired with a small, fast reflex policy
+(``System~1'') for real-time control \parencite{nvidia2025gr00t, black2025pi05}.
+
+Beyond the architecture, four changes would most improve a real deployment; each is
+motivated directly by a limitation or observation of the present work.
+
+\paragraph{Whole-body control.} Controlling the base and arm as a single system,
+rather than parking the base and then moving the arm, would let the robot reach while
+repositioning --- extending its effective workspace, reaching around obstacles, and
+approaching awkward items (such as the far-edge milk carton) from a more favourable
+base pose. The parked-base assumption made here simplifies the manipulation problem
+but is also, in part, responsible for the milk carton's difficulty, since that item
+is only reachable at near-full extension; a whole-body policy would fold the base
+positioning into the same optimisation as the reach.
+
+\paragraph{Tactile and force sensing.} The clearest capability gap in this thesis is
+grasping: the milk carton grasps at 70\% and the cereal box is excluded entirely for
+slipping. These are difficult to solve from vision alone, because whether the fingers
+have secured an object --- and whether it is slipping during transport --- is a contact
+property, not a visual one. Tactile or force sensing on the gripper would provide
+exactly this signal, enabling closed-loop grip adjustment and slip detection, and is
+the most direct route to lifting the weak items and re-admitting cereal.
+
+\paragraph{Diverse, co-trained data.} A four-item, single-scene dataset cannot
+support the generalisation a service robot requires. The most effective route,
+following $\pi_{0.5}$ \parencite{black2025pi05}, is to co-train on a deliberately
+heterogeneous mixture --- teleoperation across many stores and items, domain-randomised
+simulation, and even human video --- so that the policy learns invariances rather than
+memorising a fixed inventory. This would also address the multi-item distribution
+shift documented in \refsec{sec:disc-limits}, since varied basket contents would
+appear naturally in such data.
+
+\paragraph{Imitation followed by reinforcement.} Behaviour cloning caps a policy at
+the quality of its demonstrations; it can, at best, imitate the scripted expert.
+Reinforcement-learning fine-tuning on top of the imitation-pretrained policy ---
+safely, in simulation --- could discover behaviours the expert never demonstrated, in
+particular robust recoveries from the near-misses that dominate the residual failures
+here, pushing performance past the demonstration ceiling.
+
+In this framing, the system built in this thesis is the \emph{deployable subset} of
+that ideal: the same fundamental recipe --- a pretrained perception prior, a learned
+action mapping, and disciplined evaluation --- constrained to what a single GPU and a
+modest demonstration budget allow. The value of characterising that subset carefully
+is that it establishes what is achievable now, and identifies precisely which
+additions --- contact sensing, whole-body control, data diversity, reinforcement ---
+would buy the most, and why.
+
+\section{Comparison with related work}
+\label{sec:disc-compare}
+The 80\% task-completion rate is comparable to Kiviranta's 80\% single-task success
+fine-tuning the same SmolVLA checkpoint on real SO-101 hardware from around 100
+demonstrations \parencite{kiviranta2025smolvla}, and consistent with that work's
+caution that SmolVLA's headline numbers are easy to overstate without careful
+evaluation --- a caution this thesis addresses directly through Wilson intervals,
+adequate sample sizes and success-based checkpoint selection. The observation that
+data and metrics dominate model choice at this scale aligns with
+\textcite{black2025pi05} and \textcite{bharadhwaj2024roboagent}, and the sensitivity
+of chunked policies to execution timing observed in the failure analysis is
+consistent with \textcite{wang2026vlalimits}.
+
+It is worth being precise about what this thesis adds relative to that body of work.
+It does not propose a new model, a new architecture, or a new training algorithm;
+SmolVLA, flow matching and behaviour cloning are all taken from the literature. Its
+contribution is instead an \emph{integrated, rigorously evaluated case study} under an
+explicit and unusually tight resource constraint, of a kind that is comparatively rare
+in a field that often reports headline capabilities from large systems. The value of
+such a study is threefold: it establishes a concrete, reproducible baseline for what a
+compact VLA achieves on a controlled language-conditioned task within 12~GB; it
+demonstrates a methodology --- honest metrics, adequate samples, confidence intervals,
+success-based selection, and failure diagnosis --- that is transferable to other
+constrained settings; and it produces a first-hand data point on the model-versus-data
+question that corroborates, from an independent direction, the conclusions of larger
+studies \parencite{black2025pi05, bharadhwaj2024roboagent}. In a research culture that
+can over-weight scale, a careful account of what is achievable \emph{without} it is a
+useful counterweight.
+
+\section{Threats to validity}
+\label{sec:disc-validity}
+It is worth stating explicitly the threats to the validity of the conclusions and
+how each is mitigated or bounded.
+
+\paragraph{Construct validity.} Task completion is defined as the item coming to
+rest inside the basket footprint and low, rather than merely near the basket. This
+was a deliberate correction of the proxy metric that inflated results in the pilot
+study (\refsec{sec:results-journey}), and it ensures the headline number measures
+the intended construct --- successful placement --- rather than a correlate of it.
+
+\paragraph{Internal validity.} The 0\%-to-80\% improvement is attributed to three
+specific changes made together (clean episode boundaries, a basket camera and a
+wider tote), so their individual contributions are not isolated by an ablation. The
+changes were, however, motivated by a concrete traced failure, and each targets a
+distinct facet of that failure (what the policy is taught, what it can see, and how
+much slack the target allows). A controlled ablation is identified as useful further
+work.
+
+\paragraph{External validity.} All results are in a single simulated environment
+with four items and a parked base; they should not be read as a claim about real
+hardware, other objects, or full mobile manipulation. The intent is narrower --- to
+characterise what a compact VLA can do under a fixed hardware budget on a controlled
+task --- and the limitations of \refsec{sec:disc-limits} bound the generalisation
+accordingly.
+
+\paragraph{Statistical conclusion validity.} Because the flow-matching policy is
+stochastic, single rollouts are uninformative; success is therefore reported over
+320 trials with Wilson intervals, and differences whose intervals overlap (for
+example the 5k and 10k checkpoints) are not treated as real. The intervals are wide
+at $n=20$ per item, so per-item claims (especially milk at 60\%) are made
+cautiously. A limitation of the checkpoint-selection procedure is that selection and
+reporting share the same item set; a fully locked test set would give an unbiased
+final estimate.

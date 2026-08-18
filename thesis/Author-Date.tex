@@ -1,0 +1,254 @@
+\section{Cranfield APA7 Author-Date Referencing}
+\label{sec:authordaterefs}
+Ensure the following lines are uncommented in the preamble to the template file
+\begin{verbatim}
+SHAUN ADD
+\end{verbatim}
+and towards the end of the file
+\begin{verbatim}
+SHAUN ADD
+\end{verbatim}
+
+We now cover a few of the examples from the APA7 Author-Date \cite{cranfield_library_service_apa7_2021}. 
+
+\subsection{Journal Articles}
+\label{sec:NumberedJournal}
+\begin{description}
+\item[Journal article with one author and no DOI]:
+\begin{description}
+\item[Parenthetical citation:] A recent article discussed the fracture... \parencite{hutchinson_fracture_2010}.
+\item[Narrative citation:] Recently, \textcite{hutchinson_fracture_2010} discussed the fracture ...
+\end{description}
+
+\item[Journal article with two authors]:
+\begin{description}
+\item[Parenthetical citation:] It was not possible to separate targets \parencite{yang_perceptual_2016}.
+\item[Narrative citation:]  \textcite{yang_perceptual_2016} found it was not possible to separate targets.
+\end{description}
+
+\item[Journal article with three to twenty authors]:
+\begin{description}
+\item[Parenthetical citation:] Previous authors \parencite{langley_process_2013} have identified assumptions \ldots .
+\item[Narrative citation:]  \textcite{langley_process_2013} identify assumptions\ldots .
+\end{description}
+
+\item[Journal article with twenty one or more authors]:
+If there are twenty-one or more authors, in the reference list add the names of the first nineteen
+authors followed by \ldots and then the last author’s name.
+
+\item[Online journal article with DOI] The synthesis of a new polymer of
+cadmium(II) \linebreak ethylenediamineazide was determined by \ldots \parencite{yang_preparation_2010}. 
+\item[Online journal article with URL] The synthesis of a new polymer of
+cadmium(II) \linebreak ethylenediamineazide was determined by \ldots \parencite{yang_another_2010}.
+\item[Journal article with no author]  TC-32B QT was demonstrated at an
+exhibition held in Kent \cite{anon_first_2005}.
+\end{description}
+
+\subsection{Newspaper Articles}
+\label{Sec:Newspapers}
+If you are citing an online news website, e.g., BBC News, format the reference as a webpage (refer
+to the section on the Internet).
+
+\begin{description}
+\item[Printed newspaper article] A blast at an atomic weapons factory was
+met with denials by Iran \cite{frenkel_europe_nodate}.\\
+\textbf{Note:} Use bibtex \texttt{misc} type, omit date from \texttt{year} field and place date in \texttt{note} field. 
+\item[Article from an online newspaper]  Rayner \cite{rayner_combat_2011} reports that The Royal British Legion Centre for Blast Injury Studies is
+to design…
+\end{description}
+
+\subsection{Books}
+\label{sec:NumberedBooks}
+\begin{description}
+\item[Book with a single author] According to \textcite[p.35]{sommerville_software_2007} the most important part of software engineering is…
+\item[Book with two authors] \textcite[p.65]{stair_principles_2010} suggest…
+\item[Book with four or more authors] This was noted by \textcite[p.15]{payne_relationship_1995}
+\item[Book with an editor] Latest thinking on gender in organizations
+suggests… \cite{kumra_oxford_2014}
+\item[Chapter of an edited book] \textcite[p.35]{haase_standards_2005} identified...
+\item[Chapter of an edited book with organisation as author e.g. handbooks] 
+The steel corrosion showed …\parencite{asm_international_corrosion_1998}
+\item[Book with no author] In order to vote in the UK…\parencite{noauthor_whitakers_2011}
+\item[Electronic book (eBook) or an online book] The project manager’s role can be defined as… \parencite{kerzer_project_2009}
+\item[Book accessed via an eReader e.g. Kindle, iPad etc.]
+Brodie tried to decipher the \linebreak code~\cite{dennis_secret_2012}\\
+\textbf{NOTE: Place eReader type in square brackets at the end of the bibtex title field}
+\item[Translated Book] In his discussion about algebraic
+topology, \textcite[p.17]{matvev_lectures_2006} considered...\\
+\textbf{Translator not yet supported}
+\end{description}
+
+
+
+\subsection{Conference Papers}
+\label{sec:NumberedConference}
+\textbf{NOTE:} Use bibtex entry \texttt{incollection}.
+\begin{description}
+\item[Full conference proceeding] The IEEE \cite[p.59]{noauthor_11_2010} suggests that \ldots
+\item[Individual paper] \textcite{moon_aeroacoustic_2003} provide computations \ldots\\
+\textbf{NOTE:} Place paper number in the bibtex \texttt{number} field.
+\item[Online proceeding or paper] \textcite{wessel_assessing_2010} provide a ten step method\ldots
+\item[Offshore Technology Conference (OTC) paper] According to \textcite{chiasson_large_1999} large bore \ldots
+\end{description}
+
+\subsection{Internet}
+\label{sec:Internet}
+\textbf{NOTES:} 
+\begin{itemize}
+\item The bibtex style file does not support the \texttt{accessed} attribute so include it in the note field of the bibtex entry.
+\item If using Zotero then use a \texttt{document} and not a \texttt{web} entry as the \texttt{publisher} field is often used
+\end{itemize}
+\begin{description}
+\item[Web page with an individual author] \textcite{bradley_notitle_2011} states that libraries and \ldots
+\item[Web page with an organisation as author] The Natural Hazards Centre \cite{university_of_colorado_boulder_natural_2011} advised
+that \ldots
+\item[Blog] \textcite{borger_afghanistan_2010} claims in `Afghanistan
+options are running out' \ldots\\
+\textbf{NOTE: add [Blog] to end of title field.}
+\item[Wiki] The CILIP ARLG National committee
+meeting notes show \ldots \cite{barefoot_october_2012}
+\textbf{NOTE: add [Wiki] to end of title field.}
+\end{description}
+
+\subsection{Thesis or dissertation}
+\label{sec:thesis}
+\begin{description}
+\item[Print thesis or dissertation] An examination of Forth’s \citeyear{forth_morphological_1989}
+research shows that…
+\item[Online thesis or dissertation] \textcite{tatham_confidence_2010} identifies three areas
+undergoing notable change…\\
+\textbf{NOTE: use of question mark in thesis title is not presently detected in bibtex style file.}
+\end{description}
+
+
+\subsection{Course materials}
+\label{sec:course}
+\begin{description}
+\item[Lecture or seminar] The lecture provoked much debate~\cite{johnson_peat_2012}
+\item[Lecturers’ notes on Virtual Learning Environment \eg\ Canvas] As illustrated in the course materials~\cite{forth_analysis_2012}
+\item[Course Virtual Learning Environment discussion forum] The debate during the lecture continued in the discussion forum. \textcite{hurst_are_2012} was
+particularly vociferous.
+\end{description}
+
+\subsection{Official Publications}
+\label{sec:officialPubs}
+\textbf{Note:} These have not been tested yet but can probably be achieved with a bibtex \verb#misc# entry.
+\begin{description}
+\item[UK Statute (Act of Parliament)] 
+\item[House of Commons or House of Lords Paper]
+\item[House of Commons or House of Lords Bill]
+\item[Statutory Instruments (SIs)]
+\item[Hansard Debate]
+\item[Command Paper (Green or White Paper)]
+\item[European Directive]
+\end{description}
+
+\subsection{Reports}
+\label{sec:Reports}
+\begin{description}
+\item[Report] An analysis of China’s investment in companies in different countries has shown... \cite{wolf_chinas_2011}.
+\item[Online report] The effect was… \cite{curry_-flight_1989}.\\
+\textbf{Note:} Presently unable to get colon (:) between report number and report title.
+\item[Online industry or market research report] Media trends in the UK…\cite{marketline_media_2013}
+\item[Online company or annual report] Despite economic uncertainty the
+company’s profits did increase \cite{rolls-royce_group_plc_annual_2011}.
+\item[Online company or financial report or data source] Rolls-Royce plc turnover has dramatically
+reduced in 2009-2010 \cite{bureau_van_dijk_rolls-royce_2010}.
+\end{description}
+
+
+\subsection{Case Studies}
+\textbf{Note:} These have not been tested yet but can probably be achieved with a bibtex \verb#misc# entry.
+
+\subsection{Working Papers}
+\textbf{Note:} These have not been tested yet but can probably be achieved with a bibtex \verb#misc# entry.
+
+
+
+
+\subsection{Standards, patents, protocols and datasheets}
+\label{sec:standards}
+\textbf{Note:} 
+\begin{itemize}
+\item Use bibtex \texttt{report} item
+\item Presently unable to get colon (:) between report number and report title.
+\end{itemize}
+\begin{description}
+\item[Standard] In projects "specification, schedule and
+cost always have to be bounded to ensure
+ongoing viability" \cite{british_standards_institution_project_2010}.
+\item[Online standard from a database] Some standards provide guidelines for effective project management \cite{british_standards_institution_project_2010}.
+\item[Patent] The method of assembly... \cite{hodge_rear_2008}
+\item[Joint Service Publication or protocol] The MOD has a simple definition of knowledge \cite{great_britain_ministry_of_defence_retaining_2011}.\\
+\textbf{Note:} As the actual url is not available, put the availability and accessed data in the bibtex \texttt{note} field.
+\item[Datasheet \eg ESDU] The buckling of the panel… \cite{esdu_elastic_2008}.
+\end{description}
+
+\subsection{Datasets and software}
+\label{sec:datasets}
+\begin{itemize}
+\item Use bibtex \texttt{misc} type.
+\item Include version number in parenthesis in the \texttt{title} field.
+\end{itemize}
+\begin{description}
+\item[Dataset] Data from \textcite{partridge_spectra_2014} showed \ldots
+\item[Software] Plone is an example of this sort of use
+of an open source content management
+system~\cite{plone_foundation_plone_2016}.
+\end{description}
+
+\subsection{Audio visual materials}
+\textbf{Note:} These have not been tested yet but can probably be achieved with a bibtex \verb#misc# entry.
+
+\subsection{Images}
+\label{sec:images}
+\textbf{Notes:} 
+\begin{itemize}
+\item Use \texttt{misc} type
+\item For items available online   so include the \texttt{accessed} attribute in the \texttt{note} field of the bibtex entry.
+\end{itemize}
+\begin{description}
+\item[Illustration, figure, diagram, logo or table] The estimated sales forecast is shown in \reffig{fig:sales}.
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.6\textwidth]{Sales}
+\end{center}
+\caption{Estimated Sales Forecast~\parencite[p.4]{wisker_good_2012}}
+\label{fig:sales}
+\end{figure}
+\item[Embedded illustration, cartoon, diagram, etc.] The pressure on the housing market… \cite{wood_cartoon_2014}.\\
+\textbf{Note:} Include the \texttt{[medium]} , here a \texttt{[cartoon]} at the start of the bibtex title field.
+\item[Ordnance Survey map] P.O. equates to Post Office \parencite{ordnance_survey_oxford_1994}.\\
+\textbf{Note:} 
+\begin{itemize}
+\item Use the \texttt{title} field to add the map number and scale.
+\item Use the \texttt{note} field to add the map series.
+\end{itemize}
+\item[Online map] There are many farms in the area \parencite{ordnance_survey_peak_2010}.\\
+\textbf{Note:} The bibtex style file does not support the \texttt{accessed} attribute so include it in the note field of the bibtex entry.
+\item[Painting or drawing] \textbf{Note:} This has not been tested yet but can probably be achieved with a bibtex \verb#misc# entry.
+\item[Painting or drawing online] Groves’ {\em Carrot on a stick} \citeyear{groves_carrot_2007} is playing with colours. 
+\item[Photograph – print or slide] 
+Sublime lighting captures the atmosphere
+wonderfully \cite{collins_pictures_2010}\\
+\textbf{Note:} I uses a \texttt{book} entry here.
+\item[Photograph online or in an online collection \eg Flickr, Instagram] An abundance of movement is
+captured \cite{rush_running_1997}.
+\end{description}
+
+
+\subsection{Personal communications}
+\textbf{Notes:}\\
+\begin{itemize}
+\item Use \texttt{misc} type
+\item If dates are not fully listed then place them in the \texttt{note} field.
+\end{itemize}
+\begin{description}
+\item[Email or letter] The details of the organisational structure
+were outlined \cite{godfrey_restructure_nodate}.
+\item[Conversation] It was felt the organisational culture
+changed when the new CEO arrived \cite{williams_conversation_nodate}.
+\item[Interview, survey or questionnaire] The theory was dismissed as
+nothing new \cite{benson_should_nodate}.
+\end{description}
+

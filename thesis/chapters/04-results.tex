@@ -1,0 +1,422 @@
+\chapter{Results}
+\label{chap:results}
+
+\section{From a kitchen benchmark to a controlled task}
+\label{sec:results-journey}
+The project began as a study of whether deployable models could perform the
+RoboCasa kitchen benchmark \parencite{nasiriany2024robocasa}, whose reference
+policy is a large foundation model (GR00T~N1.6, \cite{nvidia2025gr00t}). GR00T is
+powerful --- it reached approximately 54\% zero-shot on the tested tasks --- but at
+several billion parameters it cannot be fine-tuned or deployed within a 12~GB GPU.
+The deployable small models available (SmolVLA, ACT and Pi0) were therefore
+evaluated on the same kitchen ``pick from the counter and place in the cabinet''
+tasks. Both SmolVLA and ACT completed \emph{zero} of twenty trials each: the
+cluttered kitchen benchmark was out of reach for small models out of the box.
+
+The evaluations used the same closed-loop protocol described in
+\refsec{sec:m-eval}: twenty language-conditioned episodes per policy, each a distinct
+kitchen ``pick from the counter and place in the cabinet'' instruction with a fresh
+seed. The zero success rate was not a marginal miss but a categorical one --- the
+small policies did not reliably grasp the varied kitchen objects in the cluttered
+scenes, let alone place them --- which is why simply collecting more data or tuning
+hyper-parameters was judged unlikely to help within the available budget.
+
+This negative result motivated the strategy adopted for the rest of the thesis:
+step back to a simpler, controlled task, get the methodology right, and then scale
+the lessons up. The intermediate UR10e pilot deliberately reduced every difficulty
+that RoboCasa compounds at once: a single rigid object rather than a diverse
+inventory, a fixed base, a small set of known positions, and an uncluttered
+tabletop. Under those conditions the same small models that failed RoboCasa learned
+the task, confirming that the earlier failure was one of task and data difficulty
+rather than of the models being fundamentally incapable. The three methodological
+lessons carried forward --- a verified success metric, varied demonstrations, and a
+memory-feasible training configuration --- are exactly the ingredients that the
+supermarket system in the remainder of this chapter builds upon. An intermediate pilot on a fixed-base UR10e cube pick-and-place ---
+comparing ACT and SmolVLA over five cube positions --- confirmed that small models
+\emph{can} learn a controlled task, reaching approximately 47\% (ACT) and 53\%
+(SmolVLA) placement. The two policies failed in different places rather than sharing
+weaknesses: the from-scratch ACT baseline never grasped at the two positions requiring
+the largest joint-space swing, whereas SmolVLA grasped at every position but placed
+unreliably at one, and both struggled most at the position combining the longest reach
+with the largest swing to the basket. That the VLA and the non-VLA baseline fail
+differently is itself informative --- it indicates that the pretrained
+vision--language prior changes \emph{which} part of the task is hard, not merely how
+often it succeeds --- and it foreshadows the grasp-versus-place decomposition seen in
+the supermarket results (\refsec{sec:results-peritem}). That pilot also surfaced three methodological lessons that
+proved decisive: a success-metric bug had inflated a real 40\% to a reported 80\%;
+duplicated demonstrations provided no variety to learn from; and fully unfreezing
+the vision encoder exceeded the memory budget. Fixing the metric and the data
+mattered more than the model choice. \reffig{fig:journey} summarises this
+progression, and \reffig{fig:robots} shows the three robots involved.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={A three-stage progression diagram: RoboCasa with GR00T (small models 0 percent), the UR10e pilot (about 53 percent), and the supermarket VLA (80 percent), linked by arrows.}]{figures/journey_prior_work}
+\end{center}
+\caption{The progression of the project: a large model works on RoboCasa but is
+undeployable; small models fail the benchmark; a controlled UR10e pilot succeeds;
+the lessons scale to the supermarket task. Success rate rises 0\% $\rightarrow$
+$\sim$53\% $\rightarrow$ 80\%.}
+\label{fig:journey}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.32\textwidth,
+    alt={The RoboCasa Franka robot doing a kitchen task.}]{figures/prog_robocasa}\hfill
+\includegraphics[width=0.32\textwidth,
+    alt={The UR10e arm picking a cube on a table in the pilot study.}]{figures/prog_ur10e}\hfill
+\includegraphics[width=0.32\textwidth,
+    alt={The supermarket mobile manipulator at the shelf.}]{figures/prog_supermarket}
+\end{center}
+\caption{The three robots, left to right: RoboCasa (Franka on a mobile base,
+GR00T~N1.6); the fixed-base UR10e pilot; and the supermarket mobile manipulator
+studied in this thesis.}
+\label{fig:robots}
+\end{figure}
+
+\section{Headline result}
+\label{sec:results-headline}
+On the supermarket task, the fine-tuned SmolVLA policy (best checkpoint; see
+\refsec{sec:results-checkpoint}) achieves an \textbf{80\% task-completion rate}
+(95\% Wilson CI 70--87) and a \textbf{92.5\% grasp success rate}, measured over
+\textbf{320 closed-loop trials} (four items, 20 trials each, across four
+checkpoints; the best-checkpoint headline aggregates its 80 item-trials with the
+per-item detail below). The result is not a single fortunate demonstration but an
+aggregate over many trials with confidence intervals throughout.
+
+This figure should be read against two reference points. Kiviranta reports an 80\%
+single-task success rate fine-tuning the same SmolVLA checkpoint on real SO-101
+hardware from around 100 demonstrations \cite{kiviranta2025smolvla}, so the result
+here is in the same regime as an independent study on real hardware, obtained under a
+strict 12~GB budget and with a language-conditioned choice among four items rather
+than a single fixed task. The second reference point is internal: the same family of
+small models scored 0/20 on the RoboCasa benchmark (\refsec{sec:results-journey}), so
+the 80\% here reflects not a change of model but the controlled task and the
+disciplined methodology built around it. Together these answer RQ1 affirmatively --- a
+compact VLA is deployable on a single consumer GPU at a useful success rate --- while
+the remainder of the chapter examines \emph{why} it works and where it does not.
+
+\section{Per-item results}
+\label{sec:results-peritem}
+\reftab{tab:peritem} and \reffig{fig:peritem} give the per-item breakdown for the
+selected checkpoint. Three of the four items complete at or above 75\%, and two at
+or above 90\%; grasping is essentially solved for three items at 100\%. The milk
+carton is the weakest item, which is analysed in \refsec{sec:disc-limits}.
+
+\begin{table}[ht]
+\caption{Per-item grasp and task-completion (placement) rates for the selected
+checkpoint, with $n=20$ trials per item and Wilson 95\% confidence intervals on the
+placement rate.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lccc}
+\toprule
+Item & Grasp & Placed (task complete) & 95\% CI \\
+\midrule
+Cola can      & 100\% & 95\% & 76--99 \\
+Water bottle  & 100\% & 90\% & 70--97 \\
+Bread loaf    & 100\% & 75\% & 53--89 \\
+Milk carton   & 70\%  & 60\% & 39--78 \\
+\midrule
+Overall       & 92.5\% & 80\% & 70--87 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:peritem}
+\end{table}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.8\textwidth,
+    alt={A bar chart of per-item task-completion rates with Wilson confidence-interval error bars: cola 95 percent, water bottle 90 percent, bread 75 percent, milk 60 percent.}]{figures/per_item_success}
+\end{center}
+\caption{Per-item task-completion rate for the selected checkpoint, with Wilson
+95\% confidence-interval error bars ($n=20$ each). The dashed line marks the 80\%
+overall rate.}
+\label{fig:peritem}
+\end{figure}
+
+The per-item pattern is informative. The \textbf{cola can} and \textbf{water
+bottle} are the strongest items (95\% and 90\% placement, both 100\% grasp): the can
+is compact and easy to grip, and the bottle, although tall, sits at the near-side
+reach where the wrist camera has a clean view during the descent, and its higher grip
+point (\refsec{sec:m-grasp}) gives a stable hold. The \textbf{bread loaf} grasps
+perfectly (100\%) but places slightly less reliably (75\%), consistent with its
+larger footprint making the final drop into the tote more sensitive to lateral
+error. The \textbf{milk carton} is the clear outlier (70\% grasp, 60\% placement).
+It sits at the far lateral edge of the shelf, where the arm is most extended and the
+wrist-camera viewpoint of the carton is most oblique, so the learned grasp is less
+precise; a failed or marginal grasp then propagates into a failed placement. That the
+milk carton placed more reliably at earlier checkpoints (\refsec{sec:results-checkpoint})
+indicates the weakness is not intrinsic to the item but an artefact of where in
+training the deployed checkpoint was taken, and is therefore recoverable
+(\refsec{sec:disc-limits}). The overall separation between a near-solved grasp phase
+and a more variable placement phase --- 92.5\% versus 80\% --- localises the residual
+difficulty to the final drop rather than to perception or reaching, a theme returned
+to in the failure analysis below.
+
+\section{Failure analysis: from 0\% to 80\%}
+\label{sec:results-diagnosis}
+The first policy trained on the supermarket task placed items \emph{0\%} of the
+time. Rather than assume a broken policy, a single episode was traced in detail.
+The policy in fact performed the whole task --- grasping the item, carrying it, and
+lowering it to within about two centimetres of the basket --- before (a) releasing
+about ten centimetres short, so the item rolled out of the small basket, and
+(b) failing to stop cleanly, swinging back toward the shelf and occasionally
+knocking the item out. The failure was therefore one of \emph{final-drop precision
+and observability}, not of task understanding: perception, language, grasping and
+transport all worked. \reffig{fig:nearmiss} depicts this failure mode
+schematically.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.8\textwidth,
+    alt={A side-view schematic of the near-miss failure: the gripper carries and lowers the item but releases about ten centimetres short of the basket, so the item drops short and rolls out.}]{figures/fig_nearmiss}
+\end{center}
+\caption{Schematic of the initial 0\% placement failure. The policy grasps,
+carries and lowers the item to just above the rim height, but releases
+approximately ten centimetres short of the basket, so the item drops outside the
+tote and rolls away --- a near-miss, not a failure of task understanding.}
+\label{fig:nearmiss}
+\end{figure}
+
+This diagnosis pointed to three targeted changes, none of which involved scaling
+the model: (i) \emph{clean episode boundaries} in the demonstrations, ending each
+demo at placement so the policy is not taught to move away after releasing;
+(ii) a \emph{dedicated basket camera} (\reffig{fig:basketcam}), because the policy
+could previously barely see the drop target; and (iii) a \emph{wider basket} that
+tolerates the residual near-miss. Together these raised placement from 0\% to 80\%.
+
+Each fix targets a distinct facet of the diagnosis. The \emph{clean episode
+boundary} is a data correction: by ending every demonstration at the moment of
+placement, the policy is no longer shown the return-to-home motion and therefore does
+not learn to move away immediately after releasing, which had been re-opening the
+grip near the shelf and dislodging the item. The \emph{basket camera} is an
+observability correction: previously the tote was visible only obliquely and late,
+through the wrist and scene views, so the policy had little signal with which to
+judge the final centimetres of the descent; a dedicated view of the drop target
+supplies exactly that signal throughout the carry and release. The \emph{wider tote}
+is a tolerance correction: it enlarges the target footprint so that the residual
+lateral error at release --- which the other two fixes reduce but do not eliminate ---
+still lands the item inside. It is worth emphasising that none of these changes
+increases the model's capacity; the gain comes entirely from what the policy is
+taught, what it can see, and how forgiving the target is. This is the central answer
+to RQ4: the initial failure was a specific, localisable defect at the end of the
+motion, and it was corrected by diagnosis rather than by scale.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.49\textwidth,
+    alt={The basket seen poorly from the wrist camera before the fix.}]{figures/basket_visibility}\hfill
+\includegraphics[width=0.49\textwidth,
+    alt={The dedicated basket camera providing a clear view of the tote and the gripper descending into it.}]{figures/basket_cam}
+\end{center}
+\caption{Motivation and fix for the placement failure. Left: the basket is poorly
+visible from the existing views. Right: the added basket camera gives a clear view
+of the drop target throughout the carry and release.}
+\label{fig:basketcam}
+\end{figure}
+
+\section{Language grounding}
+\label{sec:results-language}
+To test whether the policy genuinely uses the instruction rather than executing a
+fixed motion, the scene was held constant and only the instruction word was
+changed. \reftab{tab:grounding} reports the gripper's lateral ($y$) position at
+the reach, against the target item's true position. The arm reaches the
+\emph{named} item --- left for milk, centre for bread, right for the water bottle
+--- so the target moves with the word. This is genuine language grounding, not a
+memorised trajectory; the graded per-item success rates in
+\reftab{tab:peritem} are likewise the signature of a learned controller rather than
+a lookup.
+
+The design of this test is deliberately adversarial to the null hypothesis. If the
+policy had learned a single fixed reaching motion --- ignoring the instruction and
+exploiting, say, the most salient object --- then changing only the words would leave
+the reach unchanged, and the reached position would be constant across the three
+instructions. Instead the reached lateral position tracks the named item across the
+full width of the shelf, from $-0.24$ to $+0.29$\,\si{m}, a span far larger than the
+few-centimetre residual error, so the instruction is demonstrably the causal variable.
+This matters because language conditioning is the property that distinguishes a VLA
+from the non-VLA ACT baseline (\refsec{sec:bg-act}) and is, per
+\textcite{kiviranta2025smolvla}, easy to claim but fragile in practice; verifying it
+with a controlled intervention rather than assuming it is therefore central to
+answering RQ3. The small systematic undershoot on the far item (reaching $+0.29$ for a
+target at $+0.34$) is consistent with the milk carton's edge-of-reach difficulty
+discussed earlier, reflecting reduced precision at full extension rather than a failure
+of grounding.
+
+\begin{table}[ht]
+\caption{Language-grounding test. With the scene fixed and only the instruction
+changed, the gripper reaches the named item's lateral position.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lcc}
+\toprule
+Instruction & Item's $y$ (m) & Gripper reached $y$ (m) \\
+\midrule
+``milk carton''  & $-0.26$ & $-0.24$ \\
+``loaf of bread'' & $\phantom{-}0.00$ & $-0.01$ \\
+``water bottle'' & $\phantom{-}0.34$ & $\phantom{-}0.29$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:grounding}
+\end{table}
+
+\section{Checkpoint selection}
+\label{sec:results-checkpoint}
+\reftab{tab:checkpoints} and \reffig{fig:checkpoints} justify the choice of
+deployed checkpoint. All four saved snapshots were evaluated closed-loop over 80
+trials each. The 15{,}000-step checkpoint is the best, at 80\% task completion,
+while the \emph{final} 20{,}000-step checkpoint is worse, at 75\% --- evidence of
+mild over-training. Selecting by training loss, which typically continues to
+improve, would have deployed the worse model. This is a concrete demonstration of
+the principle in \refsec{sec:m-eval}: select by what the robot actually does.
+
+The pattern is the classic signature of mild over-fitting in an
+imitation-learning setting: the training objective (the flow-matching loss of
+\eqref{eq:flow}) continues to fall as the policy fits the demonstrations ever more
+closely, but closed-loop task success --- which depends on behaviour in the
+compounding, slightly off-distribution states the policy actually visits --- peaks and
+then declines as the policy begins to over-fit the exact demonstrated trajectories at
+the expense of robustness. Notably the 5k and 10k checkpoints are statistically
+indistinguishable (their confidence intervals coincide), so the meaningful comparison
+is between the 15k peak and the 20k regression; the \SI{5}{\percent} drop from 15k to
+20k, while modest and within overlapping intervals, is consistent across items and is
+sufficient to make loss-based selection the inferior choice. This directly supports
+RQ2: even the narrow decision of \emph{which snapshot to deploy} is better made by
+task success than by the training signal, and getting it wrong silently ships a worse
+robot.
+
+\begin{table}[ht]
+\caption{Overall task-completion rate by training checkpoint ($n=80$ each), with
+Wilson 95\% confidence intervals. The 15k checkpoint is selected.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lcc}
+\toprule
+Checkpoint (steps) & Task completion & 95\% CI \\
+\midrule
+5{,}000  & 68.8\% & 58--78 \\
+10{,}000 & 68.8\% & 58--78 \\
+\textbf{15{,}000} & \textbf{80.0\%} & \textbf{70--87} \\
+20{,}000 & 75.0\% & 65--83 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:checkpoints}
+\end{table}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.8\textwidth,
+    alt={A line chart of task-completion rate versus training step, peaking at the 15k checkpoint (80 percent) and dipping at 20k (75 percent), with confidence-interval error bars.}]{figures/checkpoint_selection}
+\end{center}
+\caption{Task-completion rate versus training checkpoint, selected by closed-loop
+success rather than loss. The 15k checkpoint peaks; the final 20k checkpoint
+regresses, indicating mild over-training.}
+\label{fig:checkpoints}
+\end{figure}
+
+\section{Interpretability: the model's predicted plan}
+\label{sec:results-interpret}
+Because SmolVLA predicts a chunk of 50 future actions, the model's own plan can be
+surfaced at each re-planning step. At the very first frame of an episode --- with
+the arm still at its home pose, far from the item --- the predicted gripper channel
+already transitions to ``closed'' at approximately step~16. In other words, the
+policy has decided \emph{to grasp} before it has reached the object. This readout
+is decoded directly from the network's output rather than from any hand-written
+heuristic, and provides a small but genuine window into the policy's intention.
+
+This behaviour is consistent with the role of action chunking discussed in
+\refsec{sec:bg-vla}: by committing to a temporally extended plan rather than a single
+next action, the policy encodes an anticipatory intention --- to grasp --- before the
+sensory evidence that the item is within reach. It also makes the placement phase
+interpretable: as the gripper approaches the basket, the planned gripper channel
+transitions back to ``open'' a fixed number of steps ahead of the physical release,
+so the moment of intended release can be read from the plan before it occurs. Beyond
+its explanatory value, such a readout is practically useful as a lightweight monitor:
+a plan that never intends to close, or intends to release while far from the basket,
+flags a likely failure before it happens, without any additional model or label.
+
+This form of interpretability is worth distinguishing from post-hoc explanation
+methods that attribute a decision to input features after the fact. Here the ``plan''
+is not an approximation or a saliency map but the model's literal output --- the
+sequence of actions it will execute unless it re-plans --- so reading it involves no
+additional assumptions and no auxiliary model. It is admittedly a narrow window: it
+reveals what the policy intends to do, not why it intends to do it, and it does not
+expose the visual features driving the decision. Nonetheless, for a safety-relevant
+system the ability to read a short-horizon intention directly from the controller is
+valuable, and it comes for free from the action-chunking design. In the two-VLA vision
+of \refsec{sec:future}, an analogous readout of the navigation policy's planned path
+would be a natural and cheap safety monitor around moving people.
+
+\section{End-to-end shopping list}
+\label{sec:results-orchestrator}
+Finally, an orchestrator sequences single-item picks into a shopping list. The user
+selects items from a menu of the available products; the robot collects them in
+order, with the basket accumulating items across picks (the scene is reset once at
+the start, not between items), and re-attempts an item if it misses. This
+demonstrates the intended end-to-end behaviour: a language/menu request in,
+collected items out.
+
+A caveat observed empirically is that multi-item completion is lower than the
+product of the single-item rates would predict. When the first item is already in
+the basket, the scene and basket cameras show a configuration the policy never saw
+during training (which always began with an empty basket), and this
+out-of-distribution view degrades the subsequent pick --- the far-edge water bottle
+being the most sensitive. The first item of a list is therefore always as reliable
+as the single-item rates in \reftab{tab:peritem}; later items are somewhat less so.
+The menu interface (which constrains the request to the known catalogue) and the
+retry-on-miss behaviour mitigate this, but the underlying distribution shift is a
+data problem, analysed with its remedy in \refsec{sec:disc-limits}.
+
+Two design choices in the orchestrator are worth noting. First, item selection is
+made through a fixed menu of the known products rather than by parsing arbitrary free
+text; this is a deliberate reliability decision, since the language competence that
+matters for the task is grounding a named item in the scene (which the policy does),
+not open-vocabulary parsing (which it was not trained for and which a small brittle
+parser would get wrong). Second, between items the arm is returned to its home
+configuration --- the same start state used during data collection --- so that each
+pick begins in-distribution; the scene, however, is not reset, so previously collected
+items genuinely accumulate in the basket. The retry-on-miss policy re-attempts a
+dropped item a bounded number of times, which recovers many of the stochastic
+single-attempt failures at the cost of additional time. Together these make the
+orchestrator a faithful end-to-end demonstration of the intended behaviour while
+keeping its failure modes attributable to the underlying policy rather than to the
+sequencing layer.
+
+\section{Synthesis}
+\label{sec:results-synthesis}
+Taken together, the results support three claims. First, a compact VLA is
+\emph{deployable} under a hard 12~GB budget and reaches a useful 80\% task-completion
+rate on this task (\refsec{sec:results-headline}). Second, the largest gains came
+from \emph{methodology rather than scale}: the 0\%-to-80\% improvement
+(\refsec{sec:results-diagnosis}) followed from diagnosis and from correcting
+observability, data boundaries and the target, not from a larger model; and the
+prior pilot showed metric and data fixes dominating model choice
+(\refsec{sec:results-journey}). Third, the policy is genuinely
+\emph{instruction-following} rather than executing a fixed motion
+(\refsec{sec:results-language}), and its behaviour is partly \emph{legible} through
+its own predicted plan (\refsec{sec:results-interpret}). The clear separation
+between a near-solved grasp phase (92.5\%) and a more variable placement phase
+(80\%) localises the remaining difficulty to final-drop precision under a stochastic
+policy --- precisely the regime the evaluation protocol was designed to measure
+honestly.
+
+Read against the research questions of \refsec{sec:rqs}, the chapter answers each in
+turn. RQ1 (feasibility) is answered affirmatively by the 80\% headline under a strict
+12~GB budget. RQ2 (model versus methodology) is answered by two independent pieces of
+evidence: the pilot, where fixing the metric and the data --- not the model --- moved
+real performance from an apparent 80\% to a real 40\% and then upward; and the
+supermarket task, where the decisive 0\%-to-80\% gain came from observability and data
+fixes rather than scale, and where even checkpoint selection had to be made by task
+success rather than loss. RQ3 (grounding) is answered by the controlled
+instruction-swap test, in which the reach follows the named item across the shelf. RQ4
+(failure structure) is answered by the traced diagnosis, which localised the initial
+failure to the terminal placement and corrected it by targeted changes. That all four
+questions admit clear, evidence-based answers is itself a result: it is a consequence
+of designing the evaluation, from the outset, to make such answers possible rather than
+to maximise a single headline number.

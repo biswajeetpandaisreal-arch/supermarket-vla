@@ -1,0 +1,459 @@
+\chapter{Methodology}
+\label{chap:methodology}
+
+This chapter details the experimental pipeline used throughout the thesis,
+summarised in \reffig{fig:pipeline}: constructing the simulated environment
+(\refsec{sec:m-env}); generating demonstrations with a scripted expert
+(\refsec{sec:m-expert}); recording and converting them into a training dataset
+(\refsec{sec:m-data}); fine-tuning SmolVLA under the memory budget
+(\refsec{sec:m-train}); and evaluating the resulting policy
+(\refsec{sec:m-eval}). The methodological principle throughout is a strict
+separation of roles: the scripted expert \emph{teaches} by producing clean
+demonstrations, but at inference the neural policy is in sole control of the
+robot, receiving only images, proprioception and the language instruction.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={A four-stage pipeline: scripted expert with mink inverse kinematics generating 240 demonstrations, a LeRobot dataset of three cameras plus state plus instruction, fine-tuning SmolVLA with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.}]{figures/fig_pipeline}
+\end{center}
+\caption{The experimental pipeline. A scripted inverse-kinematics expert generates
+demonstrations, which are converted to the LeRobot dataset format and used to
+fine-tune SmolVLA (backbone frozen, action expert trained); the policy is then
+evaluated closed-loop.}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Simulated supermarket environment}
+\label{sec:m-env}
+The environment is constructed programmatically as a single MuJoCo~3.9 model
+\cite{todorov2012mujoco}, rendered off-screen through EGL for headless data
+generation. The mobile manipulator comprises an Omron LD-60 mobile base
+(robosuite mesh), a UR10e six-degree-of-freedom arm and a Robotiq 2F-85
+two-finger gripper (MuJoCo Menagerie). The arm is re-parented onto the base's
+support column at a height of approximately \SI{0.70}{m}; without intervention the
+arm's position servos droop by several centimetres under gravity, so
+\emph{gravity compensation} is enabled on the arm subtree
+(\texttt{body\_gravcomp}) so that the servos reach commanded configurations
+accurately. The model exposes ten actuators: six position servos for the arm
+joints, one for the gripper, and three velocity servos for the base
+(forward, lateral and yaw). During each pick the base is held stationary by its
+velocity servos; language-guided navigation is deferred to future work
+(\refsec{sec:future}). To permit precise parking, the mobile-joint friction-loss
+was reduced from the mesh default of 250 to 15.
+
+Several physics settings required tuning to obtain stable, realistic behaviour.
+Gravity compensation on the arm subtree is essential: without it the position servos
+settle several centimetres below their commanded configuration under the arm's own
+weight, which both misaligns the grasp and breaks the correspondence between the
+recorded action (the commanded target) and the achieved pose. Grip stability is the
+other principal concern. The robosuite grocery meshes are smooth and the parallel
+gripper is rigid, so a friction-only grasp is marginal during the accelerations of
+transport; increasing the product friction coefficient and enabling additional
+no-slip solver iterations while the item is held keeps it secure, while disabling those
+iterations at release lets it fall freely rather than being flung. Contact softness is
+set so that grasps are compliant enough not to eject the item on contact yet stiff
+enough to hold it. These values were established empirically against the scripted
+expert's success rate, and they matter for learning as much as for the expert:
+demonstrations generated under unstable physics would teach the policy to reproduce
+unstable behaviour.
+
+Products are textured grocery meshes from robosuite --- a milk carton, cola can,
+bread loaf, cereal box and water bottle --- selected over primitive shapes for
+visual realism so that the pretrained perception of the VLA has meaningful cues to
+exploit. The assembled workspace is shown in \reffig{fig:system}, and the
+task-relevant geometry is given as a top-down schematic in
+\reffig{fig:layout}. The five products rest along the shelf front at lateral
+positions $y \in \{-0.26, -0.13, 0.00, 0.15, 0.34\}$\,\si{m}; these were chosen to
+lie within the arm's reliable grasp zone so that per-episode jitter never forces
+an item into a marginal, extended-reach configuration. The basket is mounted on
+the base deck at approximately $(x,y)=(0.24, 0.00)$\,\si{m}.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.75\textwidth,
+    alt={The simulated mobile manipulator: an Omron mobile base with a UR10e arm and gripper, facing a stocked supermarket shelf, with a basket mounted on the base.}]{figures/robot_and_shelf}
+\end{center}
+\caption{The simulated supermarket workspace: an Omron mobile base carrying a
+UR10e arm and Robotiq gripper, a stocked shelf of textured grocery meshes, and an
+onboard basket as the drop target.}
+\label{fig:system}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.85\textwidth,
+    alt={A top-down schematic of the environment showing the parked base, the arm mount, the basket on the deck, and the five grocery items along the shelf front at their lateral positions.}]{figures/fig_env_layout}
+\end{center}
+\caption{Top-down schematic of the task geometry (metres, base frame). Products
+rest along the shelf front at the indicated lateral positions; the cereal box is
+excluded from training as it slips in the two-finger gripper.}
+\label{fig:layout}
+\end{figure}
+
+\subsection{Arm, gripper and workspace}
+\label{sec:m-arm}
+The UR10e is a six-degree-of-freedom serial manipulator with a nominal reach of
+approximately \SI{1.3}{m} and a spherical wrist, which gives a large, dexterous
+workspace well suited to reaching across a shelf and over the basket. The six
+revolute joints are driven by MuJoCo position servos; commanding a joint
+configuration and stepping the physics under gravity compensation causes the arm to
+converge to that configuration. Because the arm is redundant for a purely positional
+grasp target only in orientation (six joints for a six-dimensional pose), the
+inverse-kinematics problem is well posed but sensitive to the branch of the solution,
+which motivates the home-seeding described in \refsec{sec:m-ik}.
+
+The Robotiq 2F-85 is an under-actuated parallel gripper with an \SI{85}{mm} stroke,
+modelled with the tendon-driven finger coupling from the MuJoCo Menagerie. Its single
+control input is mapped to a normalised opening in $[0,1]$, which is the seventh
+dimension of both the state and the action. Because the fingers are rigid and the
+robosuite meshes are smooth, a friction-only grip is prone to slipping during the
+accelerations of transport; this is countered by enabling additional no-slip solver
+iterations while the item is held and by keeping transport motions gentle, and the
+no-slip iterations are disabled at the instant of release so the item falls freely
+into the tote rather than being flung.
+
+The policy observes the scene through three cameras, illustrated in
+\reffig{fig:cameras}: a \emph{wrist} camera (eye-in-hand, \SI{75}{\degree} field of
+view) for the close-up grasp; a \emph{scene} camera facing the shelf for object
+localisation; and a \emph{basket} camera aimed at the drop target. Each is
+rendered at $96\times96$ pixels. These three images, together with the arm's
+seven-dimensional proprioceptive state and the text instruction, constitute the
+entire input to the policy; crucially, \emph{no object coordinates or segmentation
+are provided}, so the policy must localise the named item from pixels alone.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={Three camera views: a wrist eye-in-hand view of the gripper, a scene view of the shelf, and a basket view of the drop target.}]{figures/camera_views}
+\end{center}
+\caption{The three synchronised camera views the policy receives every step:
+wrist (eye-in-hand), scene (shelf-facing) and basket (drop target).}
+\label{fig:cameras}
+\end{figure}
+
+\subsection{Rendering and image preprocessing}
+\label{sec:m-render}
+Camera frames are produced by MuJoCo's off-screen renderer through EGL, which allows
+data generation and evaluation to run without a display --- essential for headless,
+scripted collection of hundreds of episodes. Each camera renders an RGB image that is
+resized to $96\times96$ before being passed to the policy. This modest resolution is a
+deliberate compromise: it is large enough to localise the products and read the drop
+target, but small enough that three streams can be encoded by the backbone within the
+memory budget and at an interactive rate. At both training and inference the images
+pass through the policy's pre-processor, which normalises pixel values and arranges the
+channels as the backbone expects; the same pre-processor is used in both phases, so the
+policy never sees an image distribution at test time that differs from training. The
+live interactive viewer used for qualitative inspection renders through a display
+rather than EGL and is used only for visualisation, not for measured results.
+
+\section{Scripted expert and inverse kinematics}
+\label{sec:m-expert}
+
+\subsection{Differential inverse kinematics}
+\label{sec:m-ik}
+Grasp and place poses are solved with \texttt{mink}, a MuJoCo-native differential
+inverse-kinematics library. At each solver iteration the joint velocity
+$\dot{\mathbf{q}}$ is obtained by solving a small quadratic program that minimises
+the weighted end-effector task error subject to kinematic limits,
+\begin{equation}
+\min_{\dot{\mathbf{q}}}\;
+\sum_{k} \big\lVert \mathbf{J}_k \dot{\mathbf{q}} - \mathbf{v}_k^{\star} \big\rVert^2
+\quad\text{s.t.}\quad
+\dot{\mathbf{q}}_{\min} \le \dot{\mathbf{q}} \le \dot{\mathbf{q}}_{\max},
+\label{eq:ik}
+\end{equation}
+where $\mathbf{J}_k$ is the task Jacobian and $\mathbf{v}_k^\star$ the desired task
+velocity for task $k$ (end-effector position and orientation). The mobile base is
+pinned by a velocity limit and the arm respects a configuration limit, so only the
+six arm joints move. Because \eqref{eq:ik} is solved iteratively from the current
+configuration, it is a \emph{local} solver: grasp IK is therefore seeded from the
+arm's actual home configuration, which yields a solution on the same kinematic
+branch that the position servos can subsequently track. Seeding from an arbitrary
+pose was found to produce joint solutions that wrap beyond $\pm 2\pi$ or that the
+servo cannot follow, causing the gripper to close off-centre.
+
+\subsection{Pick-and-place trajectory}
+\label{sec:m-traj}
+Because the target shelf bay is boxed in from above, the item cannot simply be
+lifted vertically clear of the shelf. Instead the expert executes a top-down grasp
+followed by a \emph{frontal extraction}: the grasped item is pulled straight out of
+the shelf front at grasp height before being carried to the basket. The full phase
+sequence is listed in \reftab{tab:phases}. Grip stability on the smooth robosuite
+meshes is maintained by enabling no-slip solver iterations during transport; these
+are disabled immediately before release so the item drops cleanly into the tote.
+
+\begin{table}[ht]
+\caption{Phases of the scripted pick-and-place trajectory. Interpolation steps are
+executed under the arm position servos, stepping the physics between waypoints.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lll}
+\toprule
+Phase & Gripper & Purpose \\
+\midrule
+Home              & open          & settle at the trained start pose \\
+Pre-grasp         & open          & position above the item \\
+Grasp             & open          & descend to grasp height \\
+Close             & open$\to$closed & secure the item \\
+Lift              & closed        & raise into the opened shelf bay \\
+Extract           & closed        & pull straight out of the shelf front \\
+Approach          & closed        & move over the basket \\
+Lower / place     & closed        & descend over the tote \\
+Release           & closed$\to$open & drop the item (no-slip disabled) \\
+Settle            & open          & hold while the item settles \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:phases}
+\end{table}
+
+\subsection{Per-item grasp tuning}
+\label{sec:m-grasp}
+Reliable grasping required per-item parameters, summarised in
+\reftab{tab:grasptune}: the finger-closing yaw, the grip height (wrist-to-item
+offset) and the item's rest position. The cereal box, being the widest item,
+requires the fingers to close across its narrow face; the water bottle, being
+tall, requires a higher grip point for a stable hold; and the milk carton was
+moved inward from the reach edge to prevent it toppling under jitter. With these
+tunings the expert succeeds, under per-episode jitter, on the four retained items
+with rates of 100\% (cola), 100\% (bread), 98\% (milk) and 96\% (bottle). The
+cereal box is excluded from training: even with a $90^\circ$ grasp yaw it slips in
+transport, and reliably teaching a policy from unreliable demonstrations is not
+possible.
+
+\begin{table}[ht]
+\caption{Per-item grasp parameters and scripted-expert success rate (with
+per-episode positional jitter).}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lccc}
+\toprule
+Item & Grasp yaw & Notable tuning & Expert success \\
+\midrule
+Cola can     & default & ---                         & 100\% \\
+Bread loaf   & default & ---                         & 100\% \\
+Milk carton  & default & moved inward from reach edge & 98\% \\
+Water bottle & default & higher grip point           & 96\% \\
+Cereal box   & $90^\circ$ & \emph{excluded} (grip slip) & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:grasptune}
+\end{table}
+
+\section{Demonstration collection and dataset}
+\label{sec:m-data}
+For each successful episode, the recorder stores, per control step: the three
+camera images ($96\times96$), the seven-dimensional state (six arm joint angles and
+the gripper opening), the seven-dimensional action (the executed servo command),
+and a natural-language instruction. To make the policy \emph{language-conditioned}
+rather than reliant on a single memorised sentence, the instruction is drawn from a
+set of approximately twenty paraphrase templates (for example, ``pick up the
+\{item\} and place it in the basket'', ``grab the \{item\} and put it in the
+basket''), with one template sampled per episode. The identical template module is
+used at inference to guarantee train--deploy consistency. Each item's planar
+position is randomly jittered by up to \SI{2}{cm} per episode, and the grasp IK is
+re-solved on the settled position so that the demonstrations cover a distribution
+of grasp poses rather than a single canonical trajectory.
+
+Only \emph{successful} demonstrations are retained. Success is verified physically at
+the end of each scripted episode by checking that the target item has come to rest
+inside the basket footprint and low (not perched on the rim), using the same
+geometric criterion later applied to the learned policy; episodes that fail this check
+are discarded rather than saved. This guards against a subtle failure mode observed in
+the pilot study, where an over-permissive success check admitted demonstrations in
+which the item was merely near the basket, teaching the policy an imprecise notion of
+``placed''. Verifying demonstrations with the same metric used for evaluation keeps
+the definition of success consistent across data collection, training and testing.
+
+A design choice that proved decisive concerns the \emph{episode boundary}:
+demonstrations end at the instant of placement. The return-to-home motion is a
+reset for the next episode rather than part of the demonstration, and recording it
+in an earlier iteration taught the policy to move away immediately after releasing,
+knocking the item back out of the basket (\refsec{sec:results-diagnosis}).
+
+In total, 240 successful demonstrations were collected (60 per item across the four
+retained items) and converted to the LeRobot dataset format (parquet plus encoded
+video) \cite{cadene2024lerobot}. The \SI{100}{Hz} recordings are subsampled by a
+factor of five to \SI{20}{fps}, so that a fixed-length action chunk spans a useful
+temporal horizon rather than a fraction of a second, and a per-item hold-out is
+reserved for validation. Normalisation statistics are computed on the training
+split and, critically, are frozen with the checkpoint (\refsec{sec:m-eval}).
+\reffig{fig:dataset} shows a sample of the recorded streams.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={A filmstrip of recorded demonstration frames showing the wrist and scene camera streams across a pick-and-place for each item.}]{figures/dataset_preview}
+\end{center}
+\caption{A sample of the demonstration dataset: wrist and scene camera streams
+across a pick-and-place, for each of the four training items.}
+\label{fig:dataset}
+\end{figure}
+
+\reffig{fig:pickplace} shows key frames of the scripted trajectory that generates
+these demonstrations.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={A filmstrip of the scripted pick-and-place: home, pre-grasp, grasp, lift, extract, carry over the basket, and place.}]{figures/pickplace_cola_can}
+\end{center}
+\caption{Key frames of the scripted-expert pick-and-place used to generate
+demonstrations, from home pose through grasp, extraction and placement.}
+\label{fig:pickplace}
+\end{figure}
+
+\subsection{Instruction generation and language conditioning}
+\label{sec:m-lang}
+Each demonstration is labelled with a natural-language instruction sampled, at
+collection time, from a small library of paraphrase templates parameterised by the
+item name --- for example ``pick up the \{item\}\ and place it in the basket'', ``grab
+the \{item\}\ and put it in the basket'', ``take the \{item\}\ and drop it in the
+basket''. Roughly twenty distinct instructions result across the four items. The
+purpose of this variety is to prevent the policy from binding to one exact sentence:
+if every ``milk'' episode used identical wording, the model could in principle key on
+the surface form rather than on the meaning. Paraphrasing forces the language signal
+that survives across templates --- the item identity --- to be the informative one,
+which is what a pretrained vision--language backbone is well placed to extract. The
+identical template module is imported by both the data-collection and the inference
+code, so the distribution of instructions seen at test time matches that seen during
+training; this train--deploy consistency is a small but important guard against an
+accidental mismatch that would degrade grounding. At inference the instruction is
+tokenised and passed to the backbone alongside the images, exactly as during training.
+
+\subsection{Observation and action spaces and the control loop}
+\label{sec:m-spaces}
+The observation supplied to the policy at each decision is the tuple
+$(\mathbf{I}_{\text{wrist}}, \mathbf{I}_{\text{scene}}, \mathbf{I}_{\text{basket}},
+\mathbf{s}, \ell)$, where each image $\mathbf{I}$ is a $96\times96$ RGB frame,
+$\mathbf{s}\in\mathbb{R}^{7}$ is the proprioceptive state (six arm joint angles and
+the gripper opening, the latter normalised to $[0,1]$), and $\ell$ is the tokenised
+language instruction. The action $\mathbf{a}\in\mathbb{R}^{7}$ comprises six
+absolute arm-joint targets and a gripper command in $[0,1]$; the policy predicts a
+chunk of fifty such actions per forward pass.
+
+The closed-loop control cycle proceeds as follows. The current observation is
+assembled and passed through the pre-processor (which applies the frozen
+normalisation statistics); the policy predicts a fifty-step action chunk; the chunk
+is de-normalised by the post-processor; and its actions are applied to the arm
+position servos and the gripper actuator, with the physics stepped roughly
+twenty-five substeps per action (approximately \SI{20}{Hz}) before the next action.
+When the chunk is exhausted the policy re-plans from the new observation. This
+matches the horizon at which the demonstrations were sub-sampled, so that the action
+chunk the policy learns to produce spans a comparable slice of real time. Between
+consecutive items in a multi-item episode the arm is returned to its home
+configuration (the same start state as during data collection) so that each pick
+begins in-distribution; the scene itself is not reset, so previously collected items
+remain in the basket.
+
+\section{Fine-tuning SmolVLA}
+\label{sec:m-train}
+The policy is fine-tuned from the pretrained \texttt{smolvla\_base} checkpoint. The
+architecture and the training split are summarised in \reffig{fig:architecture}.
+SmolVLA couples a compact vision--language backbone (SmolVLM-2) with a
+flow-matching action expert that predicts a chunk of future actions
+\cite{shukor2025smolvla, kiviranta2025smolvla}. The backbone tokenises the three
+images and the instruction and, through interleaved cross- and self-attention,
+produces a fused representation; SmolVLA additionally reduces the number of visual
+tokens and lets the action expert read features from an intermediate backbone layer,
+both of which lower inference cost \cite{shukor2025smolvla}.
+
+The action expert is trained by a \emph{conditional flow-matching} objective. Let
+$\mathbf{a}_1$ denote a demonstrated action chunk and $\mathbf{a}_0\sim\mathcal{N}
+(\mathbf{0},\mathbf{I})$ a noise sample; along the linear path
+$\mathbf{a}_\tau=(1-\tau)\mathbf{a}_0+\tau\mathbf{a}_1$ for $\tau\in[0,1]$ the target
+velocity is $\mathbf{a}_1-\mathbf{a}_0$. The network $v_\theta$ regresses this
+velocity conditioned on the backbone features $\mathbf{c}$ and the proprioceptive
+state,
+\begin{equation}
+\mathcal{L}(\theta)=\mathbb{E}_{\tau,\mathbf{a}_0,\mathbf{a}_1}
+\big\lVert v_\theta(\mathbf{a}_\tau,\tau,\mathbf{c})-(\mathbf{a}_1-\mathbf{a}_0)\big\rVert^2 .
+\label{eq:flow}
+\end{equation}
+At inference the learned field is integrated from a noise sample over a small number
+of steps to produce an action chunk. Two properties of \eqref{eq:flow} matter here:
+actions are continuous, which suits smooth manipulation; and sampling is
+\emph{stochastic}, so repeated queries on the same observation give slightly
+different chunks --- which is why success is a distribution to be estimated over many
+trials rather than a fixed value (\refsec{sec:m-stats}).
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth,
+    alt={A block diagram of SmolVLA: three camera images, the instruction and the arm state feed a frozen vision-language backbone, whose features feed a trained flow-matching action expert that outputs a 50-step action chunk to the robot, in a closed loop.}]{figures/smolvla_architecture}
+\end{center}
+\caption{SmolVLA architecture and the training split used here. The pretrained
+vision--language backbone (frozen) encodes the images and instruction; the action
+expert (trained) maps its features and the arm state to a 50-step action chunk,
+which is executed before re-planning.}
+\label{fig:architecture}
+\end{figure}
+
+The decision that makes training feasible within \SI{12}{GB} is to \emph{freeze the
+vision--language backbone} and train only the action expert. The rationale is
+twofold. First, the backbone was pretrained on large image--text and robot corpora
+and already provides strong perception and language grounding; back-propagating
+into its roughly 400~million parameters from only 240 demonstrations would risk
+overfitting and catastrophic forgetting of that prior
+\cite{xiang2026posttraining, kiviranta2025smolvla}. In effect, the model already
+knows what the objects are and what the words mean, so fine-tuning need only learn
+the motor mapping for this specific embodiment. Second, freezing avoids storing
+activations for a backward pass through the backbone: the frozen configuration
+trains in approximately \SI{3}{GB}, whereas even partially unfreezing the vision
+encoder alongside three camera streams exceeded the budget in the preliminary study
+(\refsec{sec:results-journey}).
+
+Training uses a batch size of eight for 20{,}000 optimisation steps: each step
+draws eight (observation, action-chunk) samples, computes the flow-matching loss,
+averages the gradient over the eight, and applies one update. Averaging over a
+mini-batch reduces gradient variance relative to a single sample while remaining
+within memory; eight was the largest batch that fit comfortably. Training takes
+approximately four hours on an NVIDIA RTX~A2000 (\SI{12}{GB}). A checkpoint is
+saved every 5{,}000 steps, yielding four candidate snapshots (5k, 10k, 15k and 20k
+steps) for the selection procedure below. Complete hyper-parameters are listed in
+Appendix~\ref{app:Implementation}.
+
+\section{Evaluation methodology}
+\label{sec:m-eval}
+Policies are evaluated \emph{closed-loop}. The trained policy observes the three
+cameras, the arm state and the instruction; it predicts a 50-step action chunk,
+which is applied to the environment at approximately \SI{20}{Hz} before
+re-planning, until the episode terminates. Two binary outcomes are recorded per
+trial: \emph{grasp success} (the item is lifted clear of the shelf at some point in
+the episode) and \emph{task completion} (the item comes to rest inside the basket
+footprint and low, i.e.\ not perched on the rim), the latter being the headline
+metric.
+
+\subsection{Statistical reporting}
+\label{sec:m-stats}
+To avoid over-reading small samples, each configuration is evaluated over at least
+twenty trials per item ($\ge 80$ in total), with a fresh random seed and a freshly
+sampled instruction paraphrase per trial, and results are reported with
+\emph{Wilson} score 95\% confidence intervals \cite{wilson1927ci}. For $k$
+successes in $n$ trials with $\hat{p}=k/n$ and $z=1.96$, the interval is
+\begin{equation}
+\frac{1}{1+\frac{z^2}{n}}
+\left(
+\hat{p}+\frac{z^2}{2n}
+\;\pm\;
+z\sqrt{\frac{\hat{p}(1-\hat{p})}{n}+\frac{z^2}{4n^2}}
+\right).
+\label{eq:wilson}
+\end{equation}
+The Wilson interval is preferred over the normal approximation because it remains
+within $[0,1]$ and behaves sensibly for proportions near the boundaries and for
+modest $n$ --- both relevant here, where item rates range from 60\% to 100\% at
+$n=20$.
+
+\subsection{Checkpoint selection}
+\label{sec:m-checkpoint}
+The deployed checkpoint is selected by \emph{closed-loop task success rather than
+by training or validation loss}. All four saved snapshots are evaluated over eighty
+trials each, and the checkpoint with the highest task-completion rate is chosen. To
+prevent a train--deploy mismatch, the pre- and post-processing normalisation
+statistics are loaded from the same checkpoint, so that the actions the policy
+emits are unnormalised with exactly the statistics under which it was trained.
+\refsec{sec:results-checkpoint} shows that this choice is not academic: the final
+checkpoint is not the best.

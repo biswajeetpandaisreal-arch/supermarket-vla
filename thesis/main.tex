@@ -1,0 +1,146 @@
+%% main.tex — MSc thesis (Cranfield CUThesis2026 template)
+%% Author: Biswajeet Panda
+%% Compile on Overleaf (TeXLive 2024/2025) — CUThesis2026.sty needs the
+%% tagging / pdfmanagement packages. Build order: pdflatex -> bibtex -> pdflatex x2.
+%%
+%% >>> VERIFY the metadata below against your programme handbook before submission. <<<
+
+\DocumentMetadata{tagging=on,
+    tagging-setup={math/setup=mathml-SE},
+    pdfstandard=ua-2,
+    pdfstandard=a-4f,
+    lang=en-UK
+}
+
+\documentclass[12pt,oneside]{book}
+
+\usepackage{CUThesis2026}
+\usepackage{lscape}
+\usepackage{booktabs}   % nicer tables
+\usepackage{siunitx}    % \SI units
+
+% Numbered (Cranfield Numbered / Vancouver-style) referencing via biblatex.
+% 'sorting=none' numbers references in order of first appearance. Overleaf runs
+% biber automatically. \parencite -> "[n]" and \textcite -> "Author et al. [n]".
+\usepackage{csquotes}
+\usepackage[style=numeric-comp,sorting=none,backend=biber]{biblatex}
+\addbibresource{references.bib}
+
+% Times New Roman: the template loads mathptmx, which sets the serif font to
+% Times (the pdfLaTeX-standard equivalent of Times New Roman) for text and maths.
+% Leaving the sans-serif override commented out therefore gives a Times document.
+% \renewcommand{\familydefault}{\sfdefault} % (commented: use Times, not sans-serif)
+
+% ---- Title-page metadata (VERIFY) --------------------------------------------
+\title{Mobile Manipulator Grasping of Everyday Objects Using Vision--Language--Action Models}
+\author{Biswajeet Panda}
+\date{September 2026}
+\faculty{\FEAS}
+\course{Robotics}
+\degree{MSc}
+\supervisors{Dr Gilbert Tang and Prof Phil Webb}
+\academicyear{2025--2026}
+\copyrightyear{2026}
+
+\copyrightinstructions{(NB. Please refer to the \href{https://www.cranfield.ac.uk/-/media/files/rio/research-related-policies/intellectual-property-policy.ashx?la=en&hash=A1E0318F44085380F86D3B32BEB1B1FA0532A615}{Intellectual Property Policy} for full details on intellectual property and copyright ownership.)}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+% ---- Abstract (<= 300 words) -------------------------------------------------
+\begin{abstract}
+Vision--Language--Action (VLA) models promise generalist robot control by
+extending a pretrained vision--language backbone to output robot actions,
+letting a single network handle perception, language understanding and
+manipulation together. However, state-of-the-art VLAs are large, raising the
+question of whether a capable VLA can be fine-tuned and deployed on a single
+consumer GPU. This thesis investigates that question through a language-driven
+supermarket manipulation task, built in the MuJoCo physics simulator, in which
+a UR10e arm on an Omron mobile base must pick a named grocery item from a shelf
+and place it in an onboard basket. A preliminary study on the RoboCasa kitchen
+benchmark found that deployable small models (SmolVLA, ACT, Pi0) failed
+zero-shot, motivating a controlled task and a methodology-first approach. The
+compact SmolVLA model is fine-tuned from scripted-expert demonstrations by
+freezing its pretrained vision--language backbone and training only the action
+expert, which fits comfortably within 12~GB of GPU memory. Evaluated over 320
+closed-loop trials with Wilson 95\% confidence intervals, the policy achieves an
+80\% task-completion rate (95\% CI 70--87) and 92.5\% grasp success, selecting
+the deployed checkpoint by task success rather than training loss. A documented
+failure analysis turned an initial 0\% placement rate into 80\% by diagnosing
+near-miss behaviour and addressing observability and episode-boundary issues
+rather than blindly retraining. A controlled test demonstrates genuine language
+grounding: the arm reaches the item named by the instruction. The work shows
+that careful evaluation and data quality matter more than model scale at this
+regime, and that a capable VLA is deployable under tight hardware constraints.
+\end{abstract}
+
+\begin{keywords}
+Robot learning; Imitation learning; Mobile manipulation; Flow-matching policy;
+MuJoCo simulation; Language-conditioned grasping.
+\end{keywords}
+
+% ---- Acknowledgements --------------------------------------------------------
+\chapter{Acknowledgements}
+I would like to thank my supervisors, Dr Gilbert Tang and Prof Phil Webb, for
+their guidance and support throughout this project. I am also grateful to the
+open-source robotics community --- in particular the developers of MuJoCo,
+robosuite, the MuJoCo Menagerie and Hugging Face LeRobot --- whose tools and
+model checkpoints made this work possible.
+
+{
+\clearpage
+\singlespacing
+{\tableofcontents}
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+}
+
+% ---- Abbreviations -----------------------------------------------------------
+\begin{listofabbreviations}
+    \abbrev{VLA}{Vision--Language--Action model}
+    \abbrev{VLM}{Vision--Language Model}
+    \abbrev{LLM}{Large Language Model}
+    \abbrev{ACT}{Action Chunking Transformer}
+    \abbrev{IK}{Inverse Kinematics}
+    \abbrev{DOF}{Degree of Freedom}
+    \abbrev{GPU}{Graphics Processing Unit}
+    \abbrev{VRAM}{Video Random-Access Memory}
+    \abbrev{CI}{Confidence Interval}
+    \abbrev{RL}{Reinforcement Learning}
+    \abbrev{RGB}{Red--Green--Blue (colour image)}
+    \abbrev{RGB-D}{Red--Green--Blue plus Depth}
+    \abbrev{FEAS}{Faculty of Engineering and Applied Sciences}
+\end{listofabbreviations}
+
+% ---- Main matter -------------------------------------------------------------
+\mainmatter
+\pagestyle{fancy}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\nouppercase{\rightmark}}
+
+\include{chapters/01-introduction}
+\include{chapters/02-background}
+\include{chapters/03-methodology}
+\include{chapters/04-results}
+\include{chapters/05-discussion}
+\include{chapters/06-conclusions}
+
+% ---- References --------------------------------------------------------------
+\printbibliography[title=References]
+
+% ---- Appendices --------------------------------------------------------------
+\appendix
+
+\chapter{Ethical Approval Letter}\label{app:EthicalApproval}
+% Replace Letter.pdf with your own CURES approval letter.
+\includegraphics[width=\textwidth, trim={2cm 10cm 2cm 1.25cm}, clip,
+    alt={The ethical approval letter from the CURES system.}]{Letter.pdf}
+
+\chapter{Implementation Details}\label{app:Implementation}
+\input{chapters/appendix-implementation}
+
+\end{document}
