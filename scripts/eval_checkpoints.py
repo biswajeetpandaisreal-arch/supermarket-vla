@@ -11,6 +11,7 @@ task metric — not training loss).
         --trials 20
 """
 import sys
+import csv
 import math
 import argparse
 from pathlib import Path
@@ -39,18 +40,33 @@ def wilson(k, n, z=1.96):
     return (100 * (centre - half), 100 * (centre + half))
 
 
-def eval_checkpoint(ckpt_path, items, trials, device, base_seed):
+def trial_seed(base_seed, item_index, ep):
+    """One seed per (item, trial). Identical across checkpoints, so trials are
+    PAIRED and McNemar's test applies; distinct across trials, so each trial is a
+    genuinely different scene once --jitter is on."""
+    return base_seed + 1000 * item_index + ep
+
+
+def eval_checkpoint(ckpt_path, items, trials, device, base_seed, jitter=0.0, rows=None, ckpt_name=""):
     policy, pre, post = load_policy(ckpt_path, device)
     env = SupermarketEnv(image_size=96)
     per_item = {}
     for i, item in enumerate(items):
-        rng = np.random.default_rng(base_seed + i)
         g = p = 0
         for ep in range(trials):
+            s = trial_seed(base_seed, i, ep)
+            rng = np.random.default_rng(s)
+            torch.manual_seed(s)             # flow-matching noise was previously unseeded
             instr = instruction_for(item, rng)
-            placed, grasped, _ = run_episode(env, policy, pre, post, device, item, instr)
+            info = {}
+            placed, grasped, _ = run_episode(env, policy, pre, post, device, item, instr,
+                                             jitter=jitter, rng=rng, info=info)
             g += int(grasped)
             p += int(placed)
+            if rows is not None:
+                rows.append(dict(checkpoint=ckpt_name, item=item, trial=ep, seed=s,
+                                 instruction=instr, grasp=int(grasped), placement=int(placed),
+                                 **info))
         per_item[item] = {"grasp": g, "place": p, "n": trials}
         gl, gh = wilson(g, trials)
         pl, ph = wilson(p, trials)
@@ -70,6 +86,10 @@ if __name__ == "__main__":
     ap.add_argument("--items", nargs="+", default=ITEMS)
     ap.add_argument("--trials", type=int, default=20, help="trials per item")
     ap.add_argument("--seed", type=int, default=1000)
+    ap.add_argument("--jitter", type=float, default=0.0,
+                    help="per-trial item x/y jitter (m), matching collect_data's 0.025; "
+                         "0.0 reproduces the original fixed-scene protocol")
+    ap.add_argument("--csv", default=None, help="write per-trial rows to this path")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -77,13 +97,22 @@ if __name__ == "__main__":
     N = args.trials * len(args.items)
 
     results = {}
+    rows = [] if args.csv else None
     for ck in args.checkpoints:
         ckpt = run / "checkpoints" / ck / "pretrained_model"
         if not ckpt.exists():
             print(f"[skip] {ck}: not found at {ckpt}")
             continue
-        print(f"\n=== checkpoint {ck}  ({args.trials} trials x {len(args.items)} items = {N}) ===", flush=True)
-        results[ck] = eval_checkpoint(str(ckpt), args.items, args.trials, device, args.seed)
+        print(f"\n=== checkpoint {ck}  ({args.trials} trials x {len(args.items)} items = {N}"
+              f", jitter={args.jitter}) ===", flush=True)
+        results[ck] = eval_checkpoint(str(ckpt), args.items, args.trials, device, args.seed,
+                                      jitter=args.jitter, rows=rows, ckpt_name=ck)
+        if rows is not None:                       # write as we go; a crash keeps finished work
+            out = Path(args.csv); out.parent.mkdir(parents=True, exist_ok=True)
+            with open(out, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+                w.writeheader(); w.writerows(rows)
+            print(f"    [csv] {len(rows)} trials -> {out}", flush=True)
 
     # ---- summary table, ranked by overall place rate ----
     print("\n" + "=" * 64)

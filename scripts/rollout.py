@@ -115,15 +115,39 @@ def explain_plan(chunk, step0):
     return "\n".join(lines)
 
 
-def run_episode(env, policy, pre, post, device, product, instruction, max_steps=180, capture=False, viewer=None, do_reset=True, think=False, think_every=8):
+def jitter_item(env, product, jitter, rng):
+    """Randomly offset the target item's x/y, as collect_data does for the demos.
+    Evaluation originally ran without this, so every trial saw an identical scene;
+    supplying `jitter` makes eval trials vary in item pose the way training did."""
+    jadr = env.model.jnt_qposadr[env.model.body(product).jntadr[0]]
+    jdof = env.model.jnt_dofadr[env.model.body(product).jntadr[0]]
+    env.data.qpos[jadr]     += float(rng.uniform(-jitter, jitter))
+    env.data.qpos[jadr + 1] += float(rng.uniform(-jitter, jitter))
+    env.data.qvel[jdof:jdof + 6] = 0.0
+    env.step_sim(30)                      # re-settle at the jittered position
+
+
+def tcp_pos(env):
+    """Gripper centre — midpoint of the two finger pads."""
+    return 0.5 * (env.body_pos("left_pad") + env.body_pos("right_pad"))
+
+
+def run_episode(env, policy, pre, post, device, product, instruction, max_steps=180, capture=False, viewer=None, do_reset=True, think=False, think_every=8, jitter=0.0, rng=None, info=None):
+    """`info`, if given, is filled in place with per-trial detail (start/final item
+    pose, grasp-time gripper y and arm configuration) so evaluations can be
+    re-scored later without re-simulating. Return value is unchanged."""
     if do_reset:
         env.reset()
     return_to_home(env, viewer)           # exact trained start pose; keeps collected items in the basket
     env.model.opt.noslip_iterations = 5
+    if jitter > 0:
+        jitter_item(env, product, jitter, rng or np.random.default_rng())
     policy.reset()
     basket = env.body_pos("basket").copy()
-    rest_z = env.body_pos(product)[2]
+    start = env.body_pos(product).copy()
+    rest_z = start[2]
     max_lift = 0.0
+    closed_y = closed_q = None            # gripper y / arm pose at the first grip closure
     frames = []
     for step in range(max_steps):
         batch = pre(obs_batch(env, instruction, device))
@@ -139,6 +163,9 @@ def run_episode(env, policy, pre, post, device, product, instruction, max_steps=
                 env.step_sim(5); viewer.sync(); time.sleep(0.02)
             if not viewer.is_running():
                 break
+        if closed_y is None and float(np.clip(a[6], 0.0, 1.0)) > 0.5:
+            closed_y = float(tcp_pos(env)[1])         # where it reached when it decided to close
+            closed_q = [float(env.data.qpos[adr]) for adr in env.arm_qadr]
         max_lift = max(max_lift, env.body_pos(product)[2] - rest_z)
         if think and step % think_every == 0:
             print(vla_readout(env, product, a, basket, rest_z, max_lift > 0.05), flush=True)
@@ -148,6 +175,12 @@ def run_episode(env, policy, pre, post, device, product, instruction, max_steps=
     dx, dy, dz = abs(p[0] - basket[0]), abs(p[1] - basket[1]), p[2] - basket[2]
     placed = dx < 0.09 and dy < 0.08 and -0.02 < dz < 0.13
     grasped = max_lift > 0.05                 # item lifted clear of the shelf at some point
+    if info is not None:
+        info.update(start_x=start[0], start_y=start[1], start_z=start[2],
+                    final_x=p[0], final_y=p[1], final_z=p[2],
+                    basket_x=basket[0], basket_y=basket[1], basket_z=basket[2],
+                    max_lift=max_lift, reached_lateral_y=closed_y,
+                    joint_config_at_grasp="" if closed_q is None else " ".join(f"{v:.4f}" for v in closed_q))
     return placed, grasped, frames
 
 
