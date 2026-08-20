@@ -88,13 +88,20 @@ empirically:
 \begin{description}
     \item[RQ1 (Feasibility).] Can a compact, openly available VLA be fine-tuned and
     run on a single 12~GB GPU to perform language-conditioned pick-and-place at a
-    useful success rate? (\refsec{sec:results-headline})
+    useful success rate? Here ``useful'' is fixed in advance as a feasibility
+    threshold --- the system completes the task more often than not, reliably enough
+    to study --- and deliberately not as a deployment threshold, which for
+    shelf-picking beside people would demand a rate far closer to unity than anything
+    reported in this thesis. (\refsec{sec:results-headline},
+    \refsec{sec:results-robustness})
     \item[RQ2 (Model vs.\ methodology).] At this data and hardware scale, do
     improvements come more from model capacity or from the quality of the data,
     metrics and evaluation? (\refsec{sec:results-journey}, \refsec{sec:results-diagnosis})
     \item[RQ3 (Grounding).] Does the fine-tuned policy genuinely condition on the
-    language instruction, or does it exploit a fixed spatial correlate?
-    (\refsec{sec:results-language})
+    language instruction, or does it exploit a fixed spatial correlate --- and if it
+    does condition on language, is that conditioning implemented by localising the
+    named object or by recalling where it usually is?
+    (\refsec{sec:results-language}, \refsec{sec:results-lookup})
     \item[RQ4 (Failure structure).] When the policy fails, where in the
     perception--language--grasp--place chain does it fail, and can targeted,
     evidence-based changes correct it without increasing model size?
@@ -122,12 +129,23 @@ The principal contributions of this thesis are:
     \item Evidence that fixing the success metric and improving demonstration
     variety yielded larger gains than model choice at this data and hardware
     regime, echoing findings in the wider literature
-    \parencite{black2025pi05, bharadhwaj2024roboagent}.
-    \item A demonstration of genuine language grounding and a light-weight
-    interpretability view of the policy's predicted action plan.
+    \parencite{black2025pi05, bharadhwaj2024roboagent}; supported by a same-task
+    capacity control in which a 52-million-parameter policy with no language input
+    matches the 450-million-parameter VLA's manipulation quality, so that the VLA's
+    contribution is identified as item \emph{selection} rather than motor competence.
+    \item A controlled characterisation of what language conditioning amounts to at
+    this data scale: the policy is genuinely instruction-driven, but a displacement
+    test over 216 trials shows it maps each item word to a memorised trajectory rather
+    than localising the named object visually --- together with the consequence, that
+    task completion falls from 80\% to 58.8\% when objects are displaced by
+    \SI{2}{cm}. Alongside this, a light-weight interpretability view of the policy's
+    predicted action plan.
     \item A functioning end-to-end orchestrator that collects a multi-item shopping
-    list, together with an honest characterisation of where it degrades (the
-    distribution shift induced by an accumulating basket) and how to remedy it.
+    list, quantified over 40 randomised lists: whole-list success is 45\% for two
+    items and 30\% for three. The degradation is shown \emph{not} to be caused by the
+    accumulating basket, the explanation previously assumed, since success does not
+    fall as the basket fills; the mechanism is left open, with a candidate consistent
+    with the displacement findings above.
 \end{itemize}
 Collectively, these contributions are less about a new model or algorithm than about
 a disciplined account of what a compact VLA can and cannot do under a realistic

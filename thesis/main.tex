@@ -71,11 +71,19 @@ the policy achieves an 80\% task-completion rate (95\% Wilson confidence interva
 four checkpoints, with the deployed checkpoint selected by task success rather than
 training loss. A documented failure analysis turned an initial 0\% placement rate
 ($n=12$) into 80\% by diagnosing near-miss behaviour and addressing observability and
-episode-boundary issues rather than blindly retraining. A controlled test shows that
-the policy is language-conditioned: changing only the named item changes where the arm
-reaches. The work shows that careful evaluation and data quality matter more than
-model scale at this regime, and that a capable VLA is deployable \emph{in simulation}
-under tight hardware constraints.
+episode-boundary issues rather than blindly retraining. Controlled interventions then
+characterise what the policy has actually learned. It is genuinely
+language-conditioned --- changing only the named item changes where the arm reaches ---
+but displacing items from their trained positions reveals that this conditioning is
+recall rather than perception: across 216 such trials the policy reached the trained
+position every time and the item's actual position never. Consistent with this,
+applying the same \SI{2}{cm} jitter used to collect the demonstrations reduces task
+completion to 58.8\% (95\% CI 48--69), and a 52-million-parameter policy with no
+language input at all matches the VLA's manipulation quality on the item tested. The
+work shows that careful evaluation and data quality matter more than model scale at
+this regime, that the VLA's contribution here is item selection rather than motor
+competence, and that a compact VLA is deployable \emph{in simulation} under tight
+hardware constraints provided its operating conditions are stated.
 \end{abstract}
 
 \begin{keywords}

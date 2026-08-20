@@ -30,8 +30,22 @@ transferable outcome than a number obtained by simply retraining a larger model.
 The language-grounding test (\refsec{sec:results-language}) confirms that the
 policy is genuinely instruction-following: with the scene fixed, changing only the
 instruction word moves the reach to the named item. Together with the graded
-per-item success rates, this rules out the alternative hypothesis that the policy
-executes a single memorised trajectory.
+per-item success rates, this rules out the hypothesis that the policy executes a
+\emph{single} memorised trajectory irrespective of the instruction.
+
+It does not, however, rule out the hypothesis that the policy executes \emph{one
+memorised trajectory per item word}, and \refsec{sec:results-lookup} shows that this
+is what it does. The distinction is the most consequential finding of this thesis, and
+it is worth being precise about why the weaker test was insufficient. Every item
+occupied a fixed position in all 208 training episodes and in the grounding test
+itself; under those conditions ``localise the named object and reach to it'' and
+``recall where that word's object sits and reach there'' are behaviourally identical.
+Only moving the objects separates them, and when they are moved the policy follows the
+recalled position without exception. The lesson generalises beyond this thesis: a
+grounding test conducted on a positionally static scene cannot establish grounding, no
+matter how cleanly the reach tracks the instruction, and results of that form in the
+wider literature should be read with the same reservation. That this thesis's own
+earlier claim did not survive the stronger test is an argument for running it.
 
 The success of the frozen-backbone strategy deserves emphasis, because it reframes
 what fine-tuning a VLA on a small dataset actually involves. The intuition that a
@@ -75,13 +89,27 @@ forgiving geometry. It placed more reliably at earlier checkpoints, so the weakn
 is recoverable with milk-specific grasp tuning or additional milk demonstrations
 rather than being fundamental.
 
-\paragraph{Multi-item distribution shift.} Single-item picks are reliable, but
-multi-item lists are less so. The policy was trained with an \emph{empty} basket in
-every episode; once the basket already contains an item, the camera view is
-out-of-distribution, which degrades subsequent picks --- the far-edge water bottle
-being most affected. The principled fix is to collect a small batch of
-demonstrations with varied basket contents and fine-tune, teaching the policy to
-ignore what is already collected.
+\paragraph{Multi-item lists.} Single-item picks are reliable, but whole-list
+completion is not: 45\% for two items and 30\% for three
+(\refsec{sec:results-orchestrator}). An accumulating basket was previously assumed to
+be the cause, on the reasoning that the policy never saw a non-empty basket in
+training. Measurement does not support this: success does not decline as the basket
+fills. The mechanism remains open, and the most plausible candidate is the one
+identified in \refsec{sec:results-lookup} --- earlier picks nudge the remaining items,
+and a policy that reaches a recalled position rather than a perceived one fails once
+its target has moved.
+
+\paragraph{Reliance on fixed object positions.} The policy does not localise the named
+item; it recalls where that item was demonstrated (\refsec{sec:results-lookup}). This
+is the root cause behind several entries in this list, including the \SI{2}{cm}
+robustness result and, most likely, the multi-item degradation above. It is a data
+limitation rather than a model limitation: with every item at a fixed position in all
+208 episodes, a word-to-trajectory association fits the demonstrations exactly and is
+far simpler to learn than visual search, so the training set never gave the policy a
+reason to look. The direct remedy --- re-collecting demonstrations with item positions
+randomised over a substantial range, so that the recalled-position strategy no longer
+fits the data --- is the single highest-value next experiment this work suggests, and is
+developed in \refsec{sec:disc-ideal}.
 
 \paragraph{Excluded item.} The cereal box is excluded from training because its
 wide face slips in the two-finger gripper during transport; a wider grasp or a
@@ -114,13 +142,15 @@ each predicted chunk before re-planning amortises the backbone cost but reduces
 reactivity, the non-monotonic trade-off noted in \refsec{sec:bg-eval}.
 
 \paragraph{Scope of the instruction set.} The language conditioning is exercised over
-roughly twenty paraphrase templates spanning four items; it is not tested on
-open-vocabulary requests, unseen object names, compositional instructions (``the small
-red can''), or referring expressions that require disambiguation. The grounding result
-of \refsec{sec:results-language} should therefore be read as evidence that the policy
-uses the instruction to select among known items, not as a claim of open-world
-language understanding, which would require the far more diverse data discussed as
-future work.
+six paraphrase templates spanning four items --- 24 distinct instructions; it is not
+tested on open-vocabulary requests, unseen object names, compositional instructions
+(``the small red can''), or referring expressions that require disambiguation. The
+grounding result of \refsec{sec:results-language} should therefore be read as evidence
+that the policy uses the instruction to select among four known items, and
+\refsec{sec:results-lookup} narrows this further: the selection is among four
+memorised behaviours, not among four perceived objects. Neither result supports a
+claim of open-world language understanding, which would require the far more diverse
+data discussed as future work.
 
 \section{On cross-benchmark evaluation and specialisation}
 \label{sec:disc-crosseval}
@@ -155,8 +185,30 @@ loop, which is unsafe around moving people. The field therefore converges on a
 and interpreting a dynamic scene, paired with a small, fast reflex policy
 (``System~1'') for real-time control \parencite{nvidia2025gr00t, black2025pi05}.
 
-Beyond the architecture, four changes would most improve a real deployment; each is
-motivated directly by a limitation or observation of the present work.
+Beyond the architecture, five changes would most improve a real deployment; each is
+motivated directly by a limitation or observation of the present work. The first is
+both the cheapest and, on the evidence of \refChap{chap:results}, the most valuable.
+
+\paragraph{Positional randomisation in the demonstrations.} The single most
+consequential change would require no additional hardware, no larger model and no new
+algorithm: re-collect the demonstrations with each item's position randomised over a
+substantial range rather than fixed. \refsec{sec:results-lookup} shows that the policy
+currently maps each item word to a memorised trajectory, and
+\refsec{sec:results-robustness} shows the cost of that --- a \SI{2}{cm} displacement
+removes more than twenty points of task completion. Neither is a failing of the model:
+with every item at a fixed position in all 208 episodes, recall fits the training data
+exactly, so the dataset never made visual localisation necessary. Randomising positions
+over, say, the full width of the shelf would make the recalled-position strategy
+inconsistent with the demonstrations and force the policy to use the visual information
+it already receives --- information the scripted expert demonstrably uses, since it
+re-solves its grasp inverse kinematics on the settled object position and maintains
+96--100\% per-item success under exactly the jitter that defeats the learned policy.
+The experiment is inexpensive, since the data-collection pipeline already supports
+per-episode jitter and need only have its magnitude increased, and it is the natural
+next step for this work. Its outcome would also be informative either way: if
+randomisation produces genuine localisation, the limitation is confirmed as one of
+data; if it does not, the limitation lies deeper, in the capacity of a frozen backbone
+with a small action expert to support visual search.
 
 \paragraph{Whole-body control.} Controlling the base and arm as a single system,
 rather than parking the base and then moving the arm, would let the robot reach while
@@ -202,12 +254,18 @@ would buy the most, and why.
 
 \section{Comparison with related work}
 \label{sec:disc-compare}
-The 80\% task-completion rate is comparable to Kiviranta's 80\% single-task success
-fine-tuning the same SmolVLA checkpoint on real SO-101 hardware from around 100
-demonstrations \parencite{kiviranta2025smolvla}, and consistent with that work's
-caution that SmolVLA's headline numbers are easy to overstate without careful
-evaluation --- a caution this thesis addresses directly through Wilson intervals,
-adequate sample sizes and success-based checkpoint selection. The observation that
+The 80\% task-completion rate sits in the same regime as Kiviranta's 80\% single-task
+success fine-tuning the same SmolVLA checkpoint on real SO-101 hardware from around
+100 demonstrations \parencite{kiviranta2025smolvla}. The two figures should not be
+equated, however: Kiviranta's is obtained on physical hardware, where object pose,
+lighting and contact vary from trial to trial, whereas the figure here is measured in
+simulation at a fixed object pose, and falls to 58.8\% once object position is allowed
+to vary by \SI{2}{cm} (\refsec{sec:results-robustness}). The coincidence of the two
+numbers is therefore a coincidence of regime, not of difficulty. The comparison is
+nonetheless consistent with that work's caution that SmolVLA's headline numbers are
+easy to overstate without careful evaluation --- a caution this thesis addresses
+directly through Wilson intervals, adequate sample sizes, success-based checkpoint
+selection and, ultimately, by testing and revising its own headline claim. The observation that
 data and metrics dominate model choice at this scale aligns with
 \textcite{black2025pi05} and \textcite{bharadhwaj2024roboagent}, and the sensitivity
 of chunked policies to execution timing observed in the failure analysis is
@@ -250,10 +308,15 @@ work.
 
 \paragraph{External validity.} All results are in a single simulated environment
 with four items and a parked base; they should not be read as a claim about real
-hardware, other objects, or full mobile manipulation. The intent is narrower --- to
-characterise what a compact VLA can do under a fixed hardware budget on a controlled
-task --- and the limitations of \refsec{sec:disc-limits} bound the generalisation
-accordingly.
+hardware, other objects, or full mobile manipulation. A further and more specific
+bound applies: the headline evaluation places each item at a fixed pose, so it
+measures performance on the exact configuration demonstrated rather than on a
+distribution of configurations. \refsec{sec:results-robustness} quantifies the
+difference, and \refsec{sec:results-lookup} explains it. Any generalisation from these
+results to a setting in which objects are not where the policy last saw them is
+unsupported. The intent is narrower --- to characterise what a compact VLA can do under
+a fixed hardware budget on a controlled task --- and the limitations of
+\refsec{sec:disc-limits} bound the generalisation accordingly.
 
 \paragraph{Statistical conclusion validity.} Because the flow-matching policy is
 stochastic, single rollouts are uninformative; success is therefore reported over
