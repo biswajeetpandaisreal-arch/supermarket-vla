@@ -1,0 +1,5 @@
+{
+    "step": 20000,
+    "num_processes": 1,
+    "batch_size": 8
+}
