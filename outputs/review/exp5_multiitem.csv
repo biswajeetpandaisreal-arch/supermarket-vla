@@ -1,0 +1,101 @@
+list_id,list_len,position,item,instruction,items_in_basket_before,grasp,placement,final_x,final_y,final_z
+0,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.2075986529769691,0.015749606829138934,0.5183280372879382
+0,2,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.18405634552010572,0.08224545068555092,0.5375981813649678
+1,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.20075040068184993,0.017362465135318556,0.5183264744940843
+1,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,0,0.24101992146285875,0.09656375112694311,0.5073855995198616
+2,2,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.20687391320465048,0.023284836026157635,0.5877270255360816
+2,2,2,milk_carton,pick up the milk carton and place it in the basket,1,0,0,0.8803253018748906,-0.3423082777155321,1.0399595130571508
+3,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.21502339995025851,0.024640163988871408,0.5183291399275772
+3,2,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.24413535137446232,0.07474752658480399,0.5036651379567149
+4,2,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.213565719031136,0.02370795981151716,0.5432943139446162
+4,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,1,0.27718720427916543,0.01770648823731461,0.5012815038834257
+5,2,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,0,0.1430266886842816,0.05150614001409154,0.5070035791821144
+5,2,2,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.31891768148260025,0.03404060928129311,0.545020160961205
+6,2,1,milk_carton,pick up the milk carton and place it in the basket,0,0,0,0.7937439814160916,-0.27125167578425247,1.0398996779188054
+6,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,0,0,0,0.883793304879411,-0.014945127606819339,1.043288882939758
+7,2,1,milk_carton,pick up the milk carton and place it in the basket,0,0,0,1.0372546549514332,-0.457273244266019,1.0399142382683402
+7,2,2,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.3055575333198631,0.033718767705070846,0.5314723865197966
+8,2,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.2330949501660434,-0.05312263533010024,0.5372218859675427
+8,2,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.21971568728109037,0.008850727118554943,0.5436199960132746
+9,2,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.28458410140015855,0.019044895353533715,0.5359729766635758
+9,2,2,milk_carton,pick up the milk carton and place it in the basket,1,1,1,0.19680438259393304,0.022805751934005657,0.5398986022392199
+10,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.15899942957292984,0.044636603020661914,0.5027391243352932
+10,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,1,0.24509963190635078,-0.024896109760869135,0.502770112194792
+11,2,1,milk_carton,pick up the milk carton and place it in the basket,0,1,0,0.8763975483823859,-0.3329361785906875,1.0399465012321045
+11,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,0,0,0,0.8602620882188866,-0.007561264586427504,1.043276696544406
+12,2,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.22202181910936528,0.026802439896427086,0.5428543079705437
+12,2,2,milk_carton,pick up the milk carton and place it in the basket,1,1,1,0.18705080245316694,-0.044371567624469574,0.5267943617985025
+13,2,1,milk_carton,pick up the milk carton and place it in the basket,0,0,0,0.8826708562733983,-0.3378242526504171,1.0399567213875984
+13,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.2069533790438923,0.0750520075180389,0.4980394399997916
+14,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.19371583284359928,0.02155065864992425,0.5183061246091033
+14,2,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.2047310622012317,0.03458369614764616,0.5428972652103703
+15,2,1,water_bottle,pick up the water bottle and place it in the basket,0,0,0,0.8644965228572105,0.384737991509588,1.0456585650552053
+15,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.19847153372452853,0.02406655626829291,0.5013722135062423
+16,2,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.1512793191707267,0.029996324470952847,0.5013739068147307
+16,2,2,milk_carton,pick up the milk carton and place it in the basket,1,0,0,0.8852327591147895,-0.25874389972981765,1.0810571767338868
+17,2,1,milk_carton,pick up the milk carton and place it in the basket,0,0,0,0.8276641594557137,-0.2891345668051025,1.0399617103619312
+17,2,2,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.22537722144810818,0.017812119313685155,0.5012743587588748
+18,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.24814221878339138,0.056539586562938775,0.5027978360591097
+18,2,2,water_bottle,pick up the water bottle and place it in the basket,1,1,0,0.3354003840922147,0.01992787018087666,0.5438452330555917
+19,2,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.2017422946736236,0.0017062969249280369,0.5183260682310499
+19,2,2,milk_carton,pick up the milk carton and place it in the basket,1,1,1,0.21942733023334368,0.003872627805812064,0.5433682005150198
+20,3,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.20486580186095915,0.014629713817634005,0.5183023874120344
+20,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.2799965469331892,-0.04010957238716849,0.5396584858882871
+20,3,3,milk_carton,pick up the milk carton and place it in the basket,2,0,0,0.8687999680211855,-0.2784555144775253,1.0810568167888168
+21,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,0,0.922285016061431,-0.4410687361021635,1.0399273873440495
+21,3,2,cola_can,pick up the can of cola and place it in the basket,0,1,0,0.1479168648756625,-0.03545121369859951,0.5112041869013306
+21,3,3,bread_loaf,pick up the loaf of bread and place it in the basket,0,0,0,0.8657500297135258,-0.008330951363685833,1.0432752180123959
+22,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,0,0.2109553988372513,0.08729076367776357,0.4980085413517836
+22,3,2,milk_carton,pick up the milk carton and place it in the basket,0,1,0,0.5326074777834179,-0.25833605109432006,0.019858285361928466
+22,3,3,water_bottle,pick up the water bottle and place it in the basket,0,1,0,0.11875234222825448,0.08158892907319656,0.5470442047039831
+23,3,1,cola_can,pick up the can of cola and place it in the basket,0,1,0,0.1473698042529971,0.030956807321973236,0.5027957152567931
+23,3,2,water_bottle,pick up the water bottle and place it in the basket,0,1,0,0.9010791298785386,0.36180731802205723,1.0848942951450777
+23,3,3,milk_carton,pick up the milk carton and place it in the basket,0,0,0,0.8870428481155659,-0.34046824367307194,1.039970184325297
+24,3,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.22540299158536273,0.06767172624686311,0.5036571849095269
+24,3,2,cola_can,pick up the can of cola and place it in the basket,1,1,1,0.17796980684846825,-0.048057244238325206,0.5028651334481301
+24,3,3,milk_carton,pick up the milk carton and place it in the basket,2,0,0,0.8799052409648683,-0.3427372547278669,1.0399208736158445
+25,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.22267259776570453,0.0022786406526630024,0.5437270495767528
+25,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.15924939568602695,0.037518987882123864,0.5433303945890899
+25,3,3,cola_can,pick up the can of cola and place it in the basket,2,1,1,0.23797441090725427,-0.031448518859026,0.5028891537148396
+26,3,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.24470521279140178,0.0614615376399898,0.5435164980435809
+26,3,2,cola_can,pick up the can of cola and place it in the basket,1,1,1,0.22995055774213366,-0.07289697535505447,0.502890726971225
+26,3,3,bread_loaf,pick up the loaf of bread and place it in the basket,2,1,1,0.1711090341082671,0.02599237126158774,0.5013714266610292
+27,3,1,cola_can,pick up the can of cola and place it in the basket,0,1,1,0.1872487123096354,0.021661526175687736,0.5183287529128828
+27,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,0,0.3299265148291588,-0.020088746798730312,0.5483904382960373
+27,3,3,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,1,0.21725307327833976,0.03729626167263584,0.5013651907390191
+28,3,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.19720614167889358,0.04542721737460209,0.5428944176850079
+28,3,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,0,0.3325953449261168,0.0325592118127464,0.5027613251918236
+28,3,3,cola_can,pick up the can of cola and place it in the basket,1,1,1,0.22144925874980914,-0.0031021627235333048,0.5029174337253893
+29,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.2223963184585881,0.0007402931989186341,0.5439192603513702
+29,3,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,0,0.1315672179780215,0.028964499142663754,0.5095083124945482
+29,3,3,cola_can,pick up the can of cola and place it in the basket,1,1,0,0.018566232809710245,-0.7141621410660715,0.02492502782878701
+30,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.22866561432199228,0.02314109363348549,0.5012807694979018
+30,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.19441985479843396,0.08444781722145424,0.5743144270818918
+30,3,3,cola_can,pick up the can of cola and place it in the basket,2,1,1,0.1698445153958052,-0.017410598541841436,0.5028692080177811
+31,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.21159166099847568,-0.012216348896951177,0.538846793752984
+31,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.30948828561323133,-0.004572838860743868,0.5431828568937676
+31,3,3,cola_can,pick up the can of cola and place it in the basket,2,1,1,0.22899644505178643,-0.0047982927602521425,0.5590051155996207
+32,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.18582693287837987,-0.04236758323931953,0.5421564985585382
+32,3,2,cola_can,pick up the can of cola and place it in the basket,1,0,0,0.903305488824744,-0.2156660581478504,1.0449154492011208
+32,3,3,bread_loaf,pick up the loaf of bread and place it in the basket,1,0,0,0.8702329540520529,-0.053644028212294546,1.0400341934279502
+33,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.22253949774352505,-0.03755202879738838,0.5333925483145154
+33,3,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,1,0.16066897726058874,0.07177905141649696,0.5013666963639616
+33,3,3,water_bottle,pick up the water bottle and place it in the basket,2,1,1,0.3008267144083338,0.052550532961852,0.5445107700918057
+34,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.25928089602423265,0.038799337329283534,0.5013630314992499
+34,3,2,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.24314890360783092,0.08025518498724497,0.5866079120860705
+34,3,3,cola_can,pick up the can of cola and place it in the basket,2,1,1,0.1429764285240531,0.004558007474578811,0.5027996385408574
+35,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.2022078807226884,0.034120284544267604,0.5012917575010681
+35,3,2,cola_can,pick up the can of cola and place it in the basket,1,1,1,0.2100525456277055,-0.02806628568187656,0.5029337846669286
+35,3,3,milk_carton,pick up the milk carton and place it in the basket,2,0,0,0.8799380962673263,-0.2599254790004642,1.0810564756722203
+36,3,1,water_bottle,pick up the water bottle and place it in the basket,0,1,1,0.21401174237377316,0.01727899803550239,0.5430103759595613
+36,3,2,milk_carton,pick up the milk carton and place it in the basket,1,0,0,0.8363179013068729,-0.5174576544803985,1.03992969141821
+36,3,3,cola_can,pick up the can of cola and place it in the basket,1,0,0,0.8799389625837223,-0.13011104762960463,1.0603270496741475
+37,3,1,milk_carton,pick up the milk carton and place it in the basket,0,1,1,0.20530947469775307,0.011976169784065814,0.5419780597290843
+37,3,2,bread_loaf,pick up the loaf of bread and place it in the basket,1,1,0,0.22286417949772216,0.011844749957319258,0.6168182767187219
+37,3,3,water_bottle,pick up the water bottle and place it in the basket,1,1,1,0.27050290978747565,0.0895371618955473,0.5482360189445494
+38,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,1,0.21860932751498346,0.03496809304028085,0.5012794520976366
+38,3,2,cola_can,pick up the can of cola and place it in the basket,1,1,0,0.35652711305120915,-0.5606223672029502,0.024922033119455404
+38,3,3,milk_carton,pick up the milk carton and place it in the basket,1,0,0,0.8805108376110032,-0.256402070990479,1.0810578674467783
+39,3,1,bread_loaf,pick up the loaf of bread and place it in the basket,0,1,0,0.21030683488848917,0.0878642218063966,0.4980380289009344
+39,3,2,milk_carton,pick up the milk carton and place it in the basket,0,0,0,0.8798687011356089,-0.3455430925567245,1.0399237006721957
+39,3,3,cola_can,pick up the can of cola and place it in the basket,0,0,0,0.8458394760577539,-0.18364665685802967,1.0448662275417806

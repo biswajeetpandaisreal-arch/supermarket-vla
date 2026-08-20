@@ -39,9 +39,17 @@ def return_to_home(env, viewer=None):
 
 
 def load_policy(checkpoint, device):
-    from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
+    """Load a trained policy. The class is taken from the checkpoint's own
+    config.json, so the same evaluation harness runs SmolVLA and the ACT baseline
+    (ACT ignores the language field — that is the point of the comparison)."""
+    import json
     from lerobot.policies.factory import make_pre_post_processors
-    policy = SmolVLAPolicy.from_pretrained(checkpoint)
+    ptype = json.load(open(Path(checkpoint) / "config.json")).get("type", "smolvla")
+    if ptype == "act":
+        from lerobot.policies.act.modeling_act import ACTPolicy as Policy
+    else:
+        from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy as Policy
+    policy = Policy.from_pretrained(checkpoint)
     policy.eval().to(device)
     pre, post = make_pre_post_processors(policy_cfg=policy.config, pretrained_path=checkpoint)
     return policy, pre, post
