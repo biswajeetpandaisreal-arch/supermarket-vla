@@ -8,10 +8,18 @@ RoboCasa kitchen benchmark \parencite{nasiriany2024robocasa}, whose reference
 policy is a large foundation model (GR00T~N1.6, \cite{nvidia2025gr00t}). GR00T is
 powerful --- it reached approximately 54\% zero-shot on the tested tasks --- but at
 several billion parameters it cannot be fine-tuned or deployed within a 12~GB GPU.
-The deployable small models available (SmolVLA, ACT and Pi0) were therefore
-evaluated on the same kitchen ``pick from the counter and place in the cabinet''
-tasks. Both SmolVLA and ACT completed \emph{zero} of twenty trials each: the
-cluttered kitchen benchmark was out of reach for small models out of the box.
+Two deployable small models (SmolVLA and ACT) were therefore fine-tuned on RoboCasa
+demonstrations and evaluated on the same kitchen ``pick from the counter and place in
+the cabinet'' tasks. Both completed \emph{zero} of twenty trials each: the cluttered
+kitchen benchmark was out of reach for small models even after task-specific
+fine-tuning. A third candidate, $\pi_0$, could not be brought up in this environment
+--- training aborted before the first optimisation step owing to an incompatibility
+between the installed \texttt{transformers} release and the PaliGemma backbone
+expected by the policy implementation --- so no $\pi_0$ result is reported here.
+
+Note that the GR00T figure quoted above is a zero-shot result, whereas SmolVLA and ACT
+were fine-tuned; the comparison is therefore conservative with respect to the small
+models, and \reffig{fig:journey} should be read with that asymmetry in mind.
 
 The evaluations used the same closed-loop protocol described in
 \refsec{sec:m-eval}: twenty language-conditioned episodes per policy, each a distinct
@@ -146,9 +154,18 @@ point (\refsec{sec:m-grasp}) gives a stable hold. The \textbf{bread loaf} grasps
 perfectly (100\%) but places slightly less reliably (75\%), consistent with its
 larger footprint making the final drop into the tote more sensitive to lateral
 error. The \textbf{milk carton} is the clear outlier (70\% grasp, 60\% placement).
-It sits at the far lateral edge of the shelf, where the arm is most extended and the
-wrist-camera viewpoint of the carton is most oblique, so the learned grasp is less
-precise; a failed or marginal grasp then propagates into a failed placement. That the
+Its weakness has two causes, neither of them kinematic reach. First, it is the tallest
+item on the shelf, so its peak lift clears the \SI{0.05}{m} grasp threshold by the
+smallest margin of any item (median \SI{0.054}{m}); the grasp metric is therefore
+least reliable precisely for this item, and its 70\% figure is better read as a lower
+bound than as a measurement. Second, the learned reach exhibits a consistent inward
+bias: all four items are approached slightly short of their true lateral position,
+toward the shelf centre, so the items furthest from the centre are approached least
+accurately. Note that the milk carton is \emph{not} the most extended target --- the
+water bottle sits \SI{8}{cm} further from the centreline (\refsec{sec:m-env}) and
+achieves 100\% grasp --- and the scripted expert reaches 98\% on the carton with no
+item-specific tuning, so the difficulty lies in the learned policy rather than in the
+robot's kinematics. That the
 milk carton placed more reliably at earlier checkpoints (\refsec{sec:results-checkpoint})
 indicates the weakness is not intrinsic to the item but an artefact of where in
 training the deployed checkpoint was taken, and is therefore recoverable
@@ -160,7 +177,12 @@ to in the failure analysis below.
 \section{Failure analysis: from 0\% to 80\%}
 \label{sec:results-diagnosis}
 The first policy trained on the supermarket task placed items \emph{0\%} of the
-time. Rather than assume a broken policy, a single episode was traced in detail.
+time (0 of 12 trials; grasp 9 of 12). That baseline rests on a much smaller sample
+than the 80 trials per checkpoint reported above --- a 0/12 result carries a Wilson
+95\% confidence interval of roughly 0--24\% --- so the comparison with the final
+figure should be read as an order-of-magnitude improvement rather than an exact
+80-point gain. Rather than assume a broken policy, a single episode was traced in
+detail.
 The policy in fact performed the whole task --- grasping the item, carrying it, and
 lowering it to within about two centimetres of the basket --- before (a) releasing
 about ten centimetres short, so the item rolled out of the small basket, and
@@ -243,9 +265,12 @@ from the non-VLA ACT baseline (\refsec{sec:bg-act}) and is, per
 \textcite{kiviranta2025smolvla}, easy to claim but fragile in practice; verifying it
 with a controlled intervention rather than assuming it is therefore central to
 answering RQ3. The small systematic undershoot on the far item (reaching $+0.29$ for a
-target at $+0.34$) is consistent with the milk carton's edge-of-reach difficulty
-discussed earlier, reflecting reduced precision at full extension rather than a failure
-of grounding.
+target at $+0.34$) belongs to the \emph{water bottle}, not the milk carton, which sits
+at $-0.26$. It is not specific to that item: all four items are reached slightly short
+of their true lateral position, a consistent inward bias toward the shelf centre. Such
+a bias is characteristic of a policy interpolating between demonstrated trajectories
+rather than localising each item independently, and reflects reduced precision at the
+extremes of the demonstrated range rather than a failure of grounding.
 
 \begin{table}[ht]
 \caption{Language-grounding test. With the scene fixed and only the instruction
@@ -267,28 +292,37 @@ Instruction & Item's $y$ (m) & Gripper reached $y$ (m) \\
 
 \section{Checkpoint selection}
 \label{sec:results-checkpoint}
-\reftab{tab:checkpoints} and \reffig{fig:checkpoints} justify the choice of
-deployed checkpoint. All four saved snapshots were evaluated closed-loop over 80
-trials each. The 15{,}000-step checkpoint is the best, at 80\% task completion,
-while the \emph{final} 20{,}000-step checkpoint is worse, at 75\% --- evidence of
-mild over-training. Selecting by training loss, which typically continues to
-improve, would have deployed the worse model. This is a concrete demonstration of
-the principle in \refsec{sec:m-eval}: select by what the robot actually does.
+\reftab{tab:checkpoints} and \reffig{fig:checkpoints} report the closed-loop
+performance of all four saved snapshots, evaluated over 80 trials each. The
+15{,}000-step checkpoint attains the highest task-completion rate at 80\%, and was
+the one deployed.
 
-The pattern is the classic signature of mild over-fitting in an
-imitation-learning setting: the training objective (the flow-matching loss of
-\eqref{eq:flow}) continues to fall as the policy fits the demonstrations ever more
-closely, but closed-loop task success --- which depends on behaviour in the
-compounding, slightly off-distribution states the policy actually visits --- peaks and
-then declines as the policy begins to over-fit the exact demonstrated trajectories at
-the expense of robustness. Notably the 5k and 10k checkpoints are statistically
-indistinguishable (their confidence intervals coincide), so the meaningful comparison
-is between the 15k peak and the 20k regression; the \SI{5}{\percent} drop from 15k to
-20k, while modest and within overlapping intervals, is consistent across items and is
-sufficient to make loss-based selection the inferior choice. This directly supports
-RQ2: even the narrow decision of \emph{which snapshot to deploy} is better made by
-task success than by the training signal, and getting it wrong silently ships a worse
-robot.
+The differences between checkpoints must, however, be interpreted with care. Because
+every checkpoint was evaluated on the same trial seeds, the trials are paired and
+McNemar's exact test applies. Applied to task completion, \emph{no} pair of
+checkpoints differs significantly (all $p \ge 0.19$ uncorrected, and all $p = 1.00$
+after Holm correction for the six pairwise comparisons). On the grasp sub-task the
+picture is different: grasp success at 15k is significantly better than at 5k
+($p = 0.008$; Holm-corrected $p = 0.048$), while the remaining comparisons do not
+survive correction. The defensible conclusion is therefore narrow: training beyond
+5{,}000 steps measurably improves \emph{grasping}, but the four checkpoints are
+statistically indistinguishable on end-to-end task completion at $n=80$. The apparent
+\SI{5}{\percent} dip from 15k to 20k is within sampling noise and should not be read
+as over-training; a per-item breakdown (\reftab{tab:peritemckpt}) shows it is driven
+almost entirely by a single item, the water bottle, rather than being a consistent
+regression.
+
+A further consideration is that the learning-rate schedule was configured for
+30{,}000 decay steps but training was stopped at 20{,}000
+(Appendix~\ref{app:Implementation}), so the cosine decay was truncated at roughly two-thirds
+of its intended course and the learning rate at 15k was still $1.68\times10^{-5}$,
+about 17\% of peak. None of the checkpoints represents a converged endpoint.
+
+The methodological point stands independently of the ranking, and is what matters for
+RQ2: closed-loop task success and the training objective are not monotonically
+related, so the decision of which snapshot to deploy must be made on measured
+behaviour rather than on the training signal. Here that choice was consequential only
+in the weak sense that the final checkpoint was not the empirical best.
 
 \begin{table}[ht]
 \caption{Overall task-completion rate by training checkpoint ($n=80$ each), with
@@ -309,14 +343,38 @@ Checkpoint (steps) & Task completion & 95\% CI \\
 \label{tab:checkpoints}
 \end{table}
 
+\begin{table}[ht]
+\caption{Placement success per item and per checkpoint ($n=20$ per cell). The
+\SI{5}{\percent} aggregate drop from 15k to 20k is not consistent across items: the
+milk carton improves by four trials and the bread loaf is unchanged, while the water
+bottle accounts for the entire decline.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lccccc}
+\toprule
+Checkpoint & Cola can & Water bottle & Milk carton & Bread loaf & Overall \\
+\midrule
+5{,}000  & 90\% & 50\% & 85\%  & 50\% & 68.8\% \\
+10{,}000 & 95\% & 30\% & 100\% & 50\% & 68.8\% \\
+\textbf{15{,}000} & 95\% & 90\% & 60\% & 75\% & \textbf{80.0\%} \\
+20{,}000 & 90\% & 55\% & 80\%  & 75\% & 75.0\% \\
+\midrule
+Change 15k$\rightarrow$20k & $-1$ & $\mathbf{-7}$ & $+4$ & $0$ & $-4$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:peritemckpt}
+\end{table}
+
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=0.8\textwidth,
     alt={A line chart of task-completion rate versus training step, peaking at the 15k checkpoint (80 percent) and dipping at 20k (75 percent), with confidence-interval error bars.}]{figures/checkpoint_selection}
 \end{center}
 \caption{Task-completion rate versus training checkpoint, selected by closed-loop
-success rather than loss. The 15k checkpoint peaks; the final 20k checkpoint
-regresses, indicating mild over-training.}
+success rather than loss. The 15k checkpoint attains the highest rate; the
+differences between checkpoints are not statistically significant at $n=80$
+(McNemar, all $p \ge 0.19$), so the error bars should be read as overlapping.}
 \label{fig:checkpoints}
 \end{figure}
 

@@ -111,11 +111,12 @@ The principal contributions of this thesis are:
     collection, SmolVLA fine-tuning and closed-loop evaluation --- that operates
     within 12~GB of GPU memory by freezing the vision--language backbone and
     training only the action expert.
-    \item A rigorous evaluation demonstrating an 80\% task-completion rate
-    (95\% Wilson confidence interval 70--87) over 320 closed-loop trials, with the
-    deployed checkpoint selected by task success rather than loss.
-    \item A documented failure analysis that raised placement success from 0\% to
-    80\% by diagnosing near-miss behaviour and addressing observability and
+    \item A rigorous evaluation demonstrating an 80\% task-completion rate for the
+    selected checkpoint (95\% Wilson confidence interval 70--87, $n=80$), drawn from
+    320 closed-loop rollouts across four checkpoints, with the deployed checkpoint
+    selected by task success rather than loss.
+    \item A documented failure analysis that raised placement success from 0\%
+    ($n=12$) to 80\% by diagnosing near-miss behaviour and addressing observability and
     episode-boundary issues, rather than by scaling the model or blindly
     retraining.
     \item Evidence that fixing the success metric and improving demonstration

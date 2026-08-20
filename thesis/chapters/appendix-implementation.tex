@@ -8,8 +8,24 @@ This appendix collects implementation details for reproducibility.
     \item Inverse kinematics: \texttt{mink} (MuJoCo-native differential IK).
     \item Assets: robosuite grocery and Omron meshes; UR10e and Robotiq 2F-85 from
     the MuJoCo Menagerie.
-    \item Hardware: NVIDIA RTX~A2000 (12~GB).
+    \item Hardware: NVIDIA RTX~A2000 (12~GB), CUDA 12.8.
+    \item Library versions: \texttt{lerobot}~0.5.2, \texttt{torch}~2.11.0+cu128,
+    \texttt{mujoco}~3.9.0, \texttt{numpy}~2.2.6.
 \end{itemize}
+
+\subsection*{Memory footprint by configuration}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Configuration & Peak GPU memory \\
+\midrule
+SmolVLA, backbone frozen (deployed) & $\approx$ 3~GB \\
+SmolVLA, vision backbone unfrozen, 3 cameras & out of memory \\
+ACT (52~M parameters), 3 cameras & 0.95~GB \\
+$\pi_0$ (3.5~B parameters) & not measurable (training never started) \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \section{Training hyper-parameters}
 \begin{table}[ht]
@@ -21,11 +37,28 @@ This appendix collects implementation details for reproducibility.
 Setting & Value \\
 \midrule
 Base checkpoint & \texttt{smolvla\_base} \\
-Backbone & Frozen (action expert trained) \\
+Vision--language backbone & \texttt{SmolVLM2-500M-Video-Instruct}, 16 layers \\
+Backbone & Frozen (action expert and state projection trained) \\
+Optimiser & AdamW (decoupled weight decay) \\
+Peak learning rate & $1\times10^{-4}$ \\
+Learning-rate schedule & cosine decay with warmup \\
+Warmup steps & 1{,}000 \\
+Decay steps (configured) & 30{,}000 \\
+Final decay learning rate & $2.5\times10^{-6}$ \\
+Learning rate reached at 15k & $1.68\times10^{-5}$ \\
+Adam $\beta$ / $\varepsilon$ & $(0.9,\,0.95)$ / $1\times10^{-8}$ \\
+Weight decay & $1\times10^{-10}$ \\
+Gradient clipping (norm) & 10 \\
+Mixed precision & disabled \\
+Image augmentation & disabled \\
+Random seed & 1{,}000 \\
 Batch size & 8 \\
 Optimisation steps & 20{,}000 \\
 Checkpoints saved & every 5{,}000 steps (5k/10k/15k/20k) \\
-Action chunk length & 50 \\
+Action chunk length / executed steps & 50 / 50 \\
+Flow-matching inference steps & 10 \\
+Input images & $3\times96\times96$, padded-resized to $512\times512$ \\
+State / action normalisation & mean--std (visual: identity) \\
 Wall-clock training time & $\approx$ 4 hours \\
 Peak GPU memory & $\approx$ 3~GB \\
 \bottomrule
@@ -36,11 +69,23 @@ Peak GPU memory & $\approx$ 3~GB \\
 
 \section{Dataset}
 \begin{itemize}
-    \item 240 successful demonstrations (60 per item $\times$ 4 items:
-    cola can, water bottle, milk carton, bread loaf).
+    \item 240 successful demonstrations collected (60 per item $\times$ 4 items:
+    cola can, water bottle, milk carton, bread loaf), split into \textbf{208 training}
+    and \textbf{32 validation} episodes (52 / 8 per item).
+    \item Dataset totals: 19\,552 frames, mean 94 frames per episode, \SI{20}{fps}.
     \item Per step: three RGB images ($96\times96$; wrist, scene, basket), 7-D state
     (6 arm joints + gripper), 7-D action, and a language instruction.
-    \item $\approx$ 20 instruction paraphrases; per-episode positional jitter.
+    \item Six paraphrase templates $\times$ 4 retained items $=$ 24 distinct
+    instructions; one template sampled per episode. The templates are:
+    ``pick up the \{item\} and place it in the basket'';
+    ``grab the \{item\} and put it in the basket'';
+    ``take the \{item\} and drop it in the basket'';
+    ``put the \{item\} into the basket'';
+    ``collect the \{item\} and place it in the basket'';
+    ``pick the \{item\} off the shelf and put it in the basket''.
+    \item Per-episode positional jitter of $\pm$\SI{2.5}{cm} in $x$ and $y$
+    (uniform), applied at collection time only; the grasp IK is re-solved on the
+    settled position.
     \item Recorded at 100~Hz, subsampled $5\times$ to 20~fps; LeRobot dataset format
     (parquet + video); per-item validation hold-out.
     \item Demonstrations end at placement (clean episode boundary).
@@ -49,9 +94,15 @@ Peak GPU memory & $\approx$ 3~GB \\
 \section{Evaluation protocol}
 \begin{itemize}
     \item Closed-loop rollouts at $\approx$ 20~Hz; actions applied directly.
-    \item Metrics: grasp success (item lifted clear of the shelf) and task
-    completion (item at rest inside the basket footprint).
-    \item $\geq 20$ trials per item; fresh seeds and paraphrases per trial.
+    \item Physics substeps per action: \texttt{ACTION\_SUBSTEPS}~$=25$.
+    \item Metrics, stated exactly. \emph{Grasp}: the item's peak height exceeds its
+    own resting height by more than \SI{0.05}{m} at some point in the episode.
+    \emph{Task completion}: at the end of the episode the item satisfies
+    $|x-0.240|<0.09$, $|y|<0.08$ and $0.450<z<0.600$ (metres, robot base frame).
+    Note that this acceptance box measures $0.18\times0.16$\,\si{m}, which is
+    \emph{stricter} than the tote footprint of $0.30\times0.26$\,\si{m}: the item must
+    come to rest within the central region of the basket, not merely inside it.
+    \item $\geq 20$ trials per item; fresh paraphrase per trial.
     \item Wilson 95\% confidence intervals \parencite{wilson1927ci}.
     \item Checkpoint selected by closed-loop task success; normalisation statistics
     loaded from the same checkpoint.
@@ -76,13 +127,40 @@ stage can be run and verified independently:
     \item \texttt{shopping\_list.py} --- the menu-driven multi-item orchestrator.
 \end{itemize}
 Headless stages set \texttt{MUJOCO\_GL=egl}; the interactive viewer requires a display
-and must not set that variable. Determinism is controlled per-trial by an explicit
-random seed; because the policy is stochastic, aggregate metrics rather than single
-seeds are the unit of reporting.
+and must not set that variable.
+
+A note on determinism, since it bears on how the intervals above should be read. The
+per-trial seed governs which instruction paraphrase is drawn; the simulator itself is
+reset to a fixed state each trial, so the object layout is identical across trials of
+a given item, and the flow-matching sampler is not separately seeded. Trial-to-trial
+variation within an item therefore reflects paraphrase choice and the stochasticity of
+the policy's own sampling, not variation in object placement. Because the policy is
+stochastic, aggregate metrics rather than single seeds are the unit of reporting.
 
 \section{Coordinate conventions}
 All positions in the main text are given in the robot base frame (metres): $x$ points
 from the base toward the shelf, $y$ is lateral (positive toward the water bottle,
 negative toward the milk carton), and $z$ is vertical. The five products rest along the
-shelf front at $y\in\{-0.26,-0.13,0.00,0.15,0.34\}$ and the basket centre is at
-approximately $(0.24,0.00)$.
+shelf front at $y\in\{-0.26,-0.13,0.00,0.15,0.34\}$, all at $x=0.880$, and the basket
+centre is at approximately $(0.24,0.00)$.
+
+\section{Scene and grasp constants}
+\begin{itemize}
+    \item Basket (v2, deployed): footprint $0.30\times0.26$\,\si{m} (half-extents
+    $0.15,0.13$), centre $(0.24,0.00)$, tote-floor height $z=0.47$\,\si{m}.
+    \item Basket (v1, superseded): footprint $0.22\times0.20$\,\si{m} (half-extents
+    $0.11,0.10$), centre $x=0.28$\,\si{m}.
+    \item Gripper length \SI{0.14}{m}; pre-grasp clearance \SI{0.15}{m}.
+    \item Item-specific overrides: water bottle grasp height \SI{0.18}{m} (gripped
+    higher on the body for a stable hold); cereal box grasp yaw \SI{90}{\degree}
+    (fingers closed across the narrow face). The cereal box is excluded from all
+    reported experiments.
+    \item No-slip solver iterations during transport: 5.
+\end{itemize}
+
+\section{Code and data availability}
+The complete pipeline --- environment, scripted expert, data-collection and conversion
+scripts, training configuration and evaluation harness --- together with the generated
+demonstration dataset, is available from the author on request. All third-party
+components are open source: MuJoCo, the MuJoCo Menagerie, robosuite assets, LeRobot and
+the \texttt{smolvla\_base} checkpoint.

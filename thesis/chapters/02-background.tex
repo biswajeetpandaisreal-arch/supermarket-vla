@@ -61,14 +61,21 @@ this efficiency-focused generation.
 SmolVLA is a compact (approximately 450~million parameter) open VLA distributed
 through Hugging Face LeRobot, designed for efficient fine-tuning and deployment on
 modest hardware \parencite{shukor2025smolvla, cadene2024lerobot}. It combines a
-compact pretrained VLM (SmolVLM-2) with a flow-matching action expert. It
+compact pretrained VLM (SmolVLM-2, \cite{marafioti2025smolvlm}) with a flow-matching
+action expert. It
 processes multi-image and language inputs to produce robot action chunks, and uses
 visual-token reduction and a layer-skipping technique that lets the action expert
 access features from an intermediate VLM layer; the action expert interleaves
 cross-attention and causal self-attention layers
-\parencite{kiviranta2025smolvla, shukor2025smolvla}. These properties make it the
-largest capable VLA that fine-tunes within a 12~GB budget, which is why it is
-selected here.
+\parencite{kiviranta2025smolvla, shukor2025smolvla}. These properties make it a
+capable VLA that fine-tunes comfortably within a 12~GB budget, which is why it is
+selected here. The 12~GB ceiling constrained model selection throughout: it ruled out
+fine-tuning the multi-billion-parameter families outright, and, as
+\refchap{chap:methodology} describes, it also ruled out unfreezing the vision backbone
+once three camera streams were in use. No claim is made that SmolVLA is the
+\emph{largest} model that would fit; the one larger candidate trialled here,
+$\pi_0$, could not be brought up for reasons unrelated to memory
+(\refsec{sec:results-journey}), so the question was never settled empirically.
 
 Relative to the discrete-token approach of RT-2 \parencite{zitkovich2023rt2}, which
 represents actions as text tokens and decodes them autoregressively, SmolVLA's
@@ -118,7 +125,7 @@ Policy & Approx.\ size & Action representation & Language input \\
 ACT \cite{zhao2023act}              & $\sim$80\,M   & continuous chunk (from scratch) & no \\
 RT-2 \cite{zitkovich2023rt2}        & billions      & discrete text tokens            & yes \\
 $\pi_{0.5}$ \cite{black2025pi05}    & $\sim$3\,B    & flow-matching chunk             & yes \\
-GR00T N1.x \cite{nvidia2025gr00t}   & billions      & diffusion (dual-system)         & yes \\
+GR00T N1.6 \cite{nvidia2025gr00t}   & billions      & diffusion (dual-system)         & yes \\
 \textbf{SmolVLA} \cite{shukor2025smolvla} & $\sim$450\,M & flow-matching chunk       & yes \\
 \bottomrule
 \end{tabular}
@@ -145,12 +152,17 @@ specifically by \emph{behaviour cloning}: a policy $\pi_\theta(\mathbf{a}\mid
 \mathbf{o})$ is fitted to reproduce the actions in a fixed dataset of
 (observation, action) pairs collected from a demonstrator, here a scripted
 inverse-kinematics controller, without any reward signal or environment interaction
-during training. Behaviour cloning is attractive for its simplicity and stability
-and because it requires no reward engineering, but it has a well-known weakness:
-\emph{covariate shift}. Because the policy is only ever trained on states visited by
-the demonstrator, small errors at run time move the robot into states that are
-under-represented in the data, where the policy is less certain and makes larger
-errors, which compound. Action chunking mitigates this partially by committing to
+during training. The approach dates to ALVINN \parencite{pomerleau1988alvinn}, which
+trained a network to steer a vehicle directly from camera input. Behaviour cloning is
+attractive for its simplicity and stability and because it requires no reward
+engineering, but it has a well-known weakness: \emph{covariate shift}. Because the
+policy is only ever trained on states visited by the demonstrator, small errors at run
+time move the robot into states that are under-represented in the data, where the
+policy is less certain and makes larger errors, which compound --- an effect analysed
+formally by \textcite{ross2011dagger}, whose DAgger algorithm addresses it by
+iteratively querying the expert on states the learner actually visits. DAgger is not
+used here, since the scripted expert could in principle supply such labels but the
+training set was fixed in advance. Action chunking mitigates this partially by committing to
 temporally consistent multi-step behaviour, which reduces the high-frequency error
 accumulation that single-step policies suffer, and is one reason it has become
 standard in both ACT and VLAs \cite{zhao2023act, li2025qchunking}.
@@ -174,8 +186,11 @@ black2025pi05} and is corroborated first-hand in \refChap{chap:results}.
 Grasping is the core physical skill in this task, and the policy's behaviour is best
 understood against the classical grasping literature. Traditional approaches treat
 grasp synthesis as an analytic or model-based problem --- computing grasp points that
-achieve force closure given the object geometry and friction --- whereas learning-based
-approaches predict grasps or grasping actions directly from sensor data. The scripted
+achieve force closure given the object geometry and friction
+\parencite{bicchi2000grasping} --- whereas learning-based approaches predict grasps or
+grasping actions directly from sensor data, either by scoring candidate grasps against
+learned robustness metrics \parencite{mahler2017dexnet} or, as here, by producing
+grasping actions end-to-end as part of a closed-loop policy. The scripted
 expert in this thesis is deliberately of the former kind: it uses inverse kinematics
 to reach a hand-specified top-down grasp pose, which is reliable precisely because the
 object models and poses are known in simulation. The learned policy, by contrast,
@@ -223,8 +238,8 @@ tasks across thousands of kitchen scenes, arguing that simulation is the practic
 way to obtain large, diverse robot datasets \parencite{nasiriany2024robocasa,
 nasiriany2026robocasa365}. RoboCasa's reference results use large foundation
 policies. The preliminary study in this thesis uses RoboCasa as a stress test of
-whether \emph{small}, deployable models can perform its kitchen tasks
-out of the box (\refsec{sec:results-journey}); the negative result there motivates
+whether \emph{small}, deployable models can perform its kitchen tasks after
+task-specific fine-tuning (\refsec{sec:results-journey}); the negative result there motivates
 the controlled supermarket task built in MuJoCo for the remainder of the work.
 RoboCasa is demanding for a small model for several compounding reasons: the object
 inventory is large and varied, the kitchen scenes are cluttered and visually complex,
@@ -241,14 +256,16 @@ environment described in \refChap{chap:methodology} \parencite{todorov2012mujoco
 The value of simulation is tempered by the \emph{reality gap}: policies trained in
 simulation can exploit rendering artefacts, idealised physics or exact object poses
 that do not hold on hardware, and so transfer poorly. The dominant mitigation is
-\emph{domain randomisation} --- varying textures, lighting, camera placement, object
-poses and physical parameters during training so that the real world appears to the
-policy as just another variation of the training distribution. For a VLA there is an
+\emph{domain randomisation} \parencite{tobin2017domainrand} --- varying textures,
+lighting, camera placement, object poses and physical parameters during training so
+that the real world appears to the policy as just another variation of the training
+distribution. For a VLA there is an
 additional, subtler gap: the pretrained vision backbone was trained largely on real
 photographs, so synthetic renders are themselves mildly out-of-distribution for it.
 Freezing the backbone (\refChap{chap:methodology}) preserves its real-image prior but
 cannot adapt it to the synthetic style; a light-weight adaptation such as low-rank
-tuning of the vision layers is a plausible middle path, discussed as future work.
+tuning of the vision layers \parencite{hu2022lora} is a plausible middle path,
+discussed as future work.
 This thesis does not claim sim-to-real transfer and does not employ domain
 randomisation, as its aim is to characterise a policy under a controlled,
 reproducible simulated task; the pipeline is nonetheless built on the same tooling
@@ -271,10 +288,11 @@ gains than model choice at this scale.
 \label{sec:bg-flow}
 The action expert in SmolVLA, like that in $\pi_{0}$/$\pi_{0.5}$, is a
 \emph{flow-matching} model rather than a discrete token predictor as in RT-2
-\cite{black2025pi05, shukor2025smolvla, zitkovich2023rt2}. Flow matching learns a
-continuous velocity field that transports a simple noise distribution to the data
-distribution; at inference the field is integrated over a small number of steps to
-sample an output. For action generation this has two consequences relevant to this
+\cite{black2025pi05, shukor2025smolvla, zitkovich2023rt2}. Flow matching
+\parencite{lipman2023flowmatching} learns a continuous velocity field that transports
+a simple noise distribution to the data distribution; at inference the field is
+integrated over a small number of steps to sample an output (ten steps in the
+configuration used here). For action generation this has two consequences relevant to this
 thesis. First, actions are produced as continuous values, which suits smooth
 manipulation better than the coarse, autoregressive token decoding of
 text-token VLAs. Second, sampling is \emph{stochastic}: repeated queries on the
