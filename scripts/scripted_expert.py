@@ -109,14 +109,14 @@ def pick_place(env, product, capture=False, jitter=0.0, rng=None, grip_len=None)
     run_phase(env, grasp_q,    CLOSE, CLOSE, 20)                       # extra grip settle before moving (helps tall items hold)
     run_phase(env, pre_q,      CLOSE, CLOSE, 45); snap("4 lift")       # lift straight up into the now-open bay (secures the grip)
     run_phase(env, extract_q,  CLOSE, CLOSE, 65); snap("5 extract")   # pull out the shelf front (gentle: less slip)
-    run_phase(env, approach_q, CLOSE, CLOSE, 70); snap("5 approach")  # move over the basket (gentle)
+    run_phase(env, approach_q, CLOSE, CLOSE, 70); snap("6 approach")  # move over the basket (gentle)
     run_phase(env, place_q,    CLOSE, CLOSE, 40)
-    run_phase(env, place_q,    CLOSE, CLOSE, 45); snap("6 at-basket") # settle so the arm actually reaches over the basket
+    run_phase(env, place_q,    CLOSE, CLOSE, 45); snap("7 at-basket") # settle so the arm actually reaches over the basket
     env.model.opt.noslip_iterations = 0                              # let it drop cleanly
-    run_phase(env, place_q,     CLOSE, OPEN,  30); snap("7 release")  # open gripper — item drops in
+    run_phase(env, place_q,     CLOSE, OPEN,  30); snap("8 release")  # open gripper — item drops in
     run_phase(env, place_q,     OPEN,  OPEN,  30)                     # hold over the tote while it falls
     env.step_sim(50)                                                 # let it settle in the tote
-    run_phase(env, place_q,     OPEN,  OPEN,  15); snap("8 placed")   # final hold: item settled -- DEMO ENDS HERE
+    run_phase(env, place_q,     OPEN,  OPEN,  15); snap("9 placed")   # final hold: item settled -- DEMO ENDS HERE
 
     # Clean episode boundary: the return-to-HOME is an environment RESET for the
     # NEXT episode, not part of the demonstration. Recording it taught v1 to move
@@ -163,11 +163,14 @@ if __name__ == "__main__":
     ok, frames, (perr, zerr) = pick_place(env, args.product, capture=True)
     print(f"{args.product}: grasp IK err {perr*1000:.1f} mm / {zerr:.1f} deg  →  "
           f"{'SUCCESS (in basket)' if ok else 'FAIL'}")
-    # tile key frames into a grid
-    cols = 4
-    rows = [np.concatenate(frames[i:i + cols], axis=1) for i in range(0, len(frames), cols)]
+    # tile key frames into a grid. Prefer a column count that divides the frame
+    # count exactly, so the last row is full rather than padded with black cells.
+    n = len(frames)
+    cols = next((c for c in (4, 3, 5, 2) if n % c == 0), 4)
+    rows = [np.concatenate(frames[i:i + cols], axis=1) for i in range(0, n, cols)]
     w = max(r.shape[1] for r in rows)
-    rows = [np.pad(r, ((0, 0), (0, w - r.shape[1]), (0, 0))) for r in rows]
+    rows = [np.pad(r, ((0, 0), (0, w - r.shape[1]), (0, 0)), constant_values=255)
+            for r in rows]
     grid = np.concatenate(rows, axis=0)
     out = Path(__file__).parent.parent / "outputs" / "stage1" / f"pickplace_{args.product}.png"
     cv2.imwrite(str(out), cv2.cvtColor(grid, cv2.COLOR_RGB2BGR))

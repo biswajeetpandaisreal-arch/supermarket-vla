@@ -15,7 +15,7 @@ robot, receiving only images, proprioception and the language instruction.
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=\textwidth,
-    alt={A four-stage pipeline: scripted expert with mink inverse kinematics generating 240 demonstrations, a LeRobot dataset of three cameras plus state plus instruction, fine-tuning SmolVLA with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.}]{figures/fig_pipeline}
+    alt={A four-stage pipeline: scripted expert with mink inverse kinematics generating 208 training demonstrations, a LeRobot dataset of three cameras plus state plus instruction, fine-tuning SmolVLA with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.}]{figures/fig_pipeline}
 \end{center}
 \caption{The experimental pipeline. A scripted inverse-kinematics expert generates
 demonstrations, which are converted to the LeRobot dataset format and used to
@@ -29,8 +29,9 @@ evaluated closed-loop.}
 The environment is constructed programmatically as a single MuJoCo~3.9 model
 \cite{todorov2012mujoco}, rendered off-screen through EGL for headless data
 generation. The mobile manipulator comprises an Omron LD-60 mobile base
-(robosuite mesh), a UR10e six-degree-of-freedom arm and a Robotiq 2F-85
-two-finger gripper (MuJoCo Menagerie). The arm is re-parented onto the base's
+(robosuite mesh, \cite{zhu2020robosuite}), a UR10e six-degree-of-freedom arm and a
+Robotiq 2F-85 two-finger gripper (MuJoCo Menagerie,
+\cite{deepmind2022menagerie}). The arm is re-parented onto the base's
 support column at a height of approximately \SI{0.70}{m}; without intervention the
 arm's position servos droop by several centimetres under gravity, so
 \emph{gravity compensation} is enabled on the arm subtree
@@ -58,7 +59,7 @@ expert's success rate, and they matter for learning as much as for the expert:
 demonstrations generated under unstable physics would teach the policy to reproduce
 unstable behaviour.
 
-Products are textured grocery meshes from robosuite --- a milk carton, cola can,
+Products are textured grocery meshes from robosuite \parencite{zhu2020robosuite} --- a milk carton, cola can,
 bread loaf, cereal box and water bottle --- selected over primitive shapes for
 visual realism so that the pretrained perception of the VLA has meaningful cues to
 exploit. The assembled workspace is shown in \reffig{fig:system}, and the
@@ -86,8 +87,10 @@ onboard basket as the drop target.}
     alt={A top-down schematic of the environment showing the parked base, the arm mount, the basket on the deck, and the five grocery items along the shelf front at their lateral positions.}]{figures/fig_env_layout}
 \end{center}
 \caption{Top-down schematic of the task geometry (metres, base frame). Products
-rest along the shelf front at the indicated lateral positions; the cereal box is
-excluded from training as it slips in the two-finger gripper.}
+rest along the shelf front at the indicated lateral positions, all at $x=0.880$; the
+cereal box is shown for completeness but is excluded from training and from all
+reported results, as it slips in the two-finger gripper. Note that the water bottle
+($y=+0.34$), not the milk carton ($y=-0.26$), is the most laterally displaced item.}
 \label{fig:layout}
 \end{figure}
 
@@ -116,8 +119,12 @@ into the tote rather than being flung.
 The policy observes the scene through three cameras, illustrated in
 \reffig{fig:cameras}: a \emph{wrist} camera (eye-in-hand, \SI{75}{\degree} field of
 view) for the close-up grasp; a \emph{scene} camera facing the shelf for object
-localisation; and a \emph{basket} camera aimed at the drop target. Each is
-rendered at $96\times96$ pixels. These three images, together with the arm's
+localisation; and a \emph{basket} camera aimed at the drop target. The basket camera
+was not part of the original design: it was added in response to the failure analysis
+of \refsec{sec:results-diagnosis}, where poor observability of the drop target was
+identified as a cause of the initial placement failures. It is described here with the
+rest of the final configuration for coherence. Each camera is rendered at
+$96\times96$ pixels. These three images, together with the arm's
 seven-dimensional proprioceptive state and the text instruction, constitute the
 entire input to the policy; crucially, \emph{no object coordinates or segmentation
 are provided}, so the policy must localise the named item from pixels alone.
@@ -152,8 +159,8 @@ rather than EGL and is used only for visualisation, not for measured results.
 
 \subsection{Differential inverse kinematics}
 \label{sec:m-ik}
-Grasp and place poses are solved with \texttt{mink}, a MuJoCo-native differential
-inverse-kinematics library. At each solver iteration the joint velocity
+Grasp and place poses are solved with \texttt{mink} \parencite{zakka2024mink}, a
+MuJoCo-native differential inverse-kinematics library. At each solver iteration the joint velocity
 $\dot{\mathbf{q}}$ is obtained by solving a small quadratic program that minimises
 the weighted end-effector task error subject to kinematic limits,
 \begin{equation}
@@ -249,7 +256,7 @@ camera images ($96\times96$), the seven-dimensional state (six arm joint angles 
 the gripper opening), the seven-dimensional action (the executed servo command),
 and a natural-language instruction. To make the policy \emph{language-conditioned}
 rather than reliant on a single memorised sentence, the instruction is drawn from a
-set of approximately twenty paraphrase templates (for example, ``pick up the
+set of six paraphrase templates (for example, ``pick up the
 \{item\} and place it in the basket'', ``grab the \{item\} and put it in the
 basket''), with one template sampled per episode. The identical template module is
 used at inference to guarantee train--deploy consistency. Each item's planar
@@ -275,7 +282,9 @@ knocking the item back out of the basket (\refsec{sec:results-diagnosis}).
 
 In total, 240 successful demonstrations were collected (60 per item across the four
 retained items) and converted to the LeRobot dataset format (parquet plus encoded
-video) \cite{cadene2024lerobot}. The \SI{100}{Hz} recordings are subsampled by a
+video) \cite{cadene2024lerobot}. Of these, \textbf{208 were used for training and 32
+(8 per item) held out for validation}; all results reported in \refchap{chap:results}
+therefore rest on 208 training demonstrations. The \SI{100}{Hz} recordings are subsampled by a
 factor of five to \SI{20}{fps}, so that a fixed-length action chunk spans a useful
 temporal horizon rather than a fraction of a second, and a per-item hold-out is
 reserved for validation. Normalisation statistics are computed on the training
@@ -288,7 +297,9 @@ split and, critically, are frozen with the checkpoint (\refsec{sec:m-eval}).
     alt={A filmstrip of recorded demonstration frames showing the wrist and scene camera streams across a pick-and-place for each item.}]{figures/dataset_preview}
 \end{center}
 \caption{A sample of the demonstration dataset: wrist and scene camera streams
-across a pick-and-place, for each of the four training items.}
+across a pick-and-place, for each of the four training items. This sample predates
+the addition of the basket camera (\refsec{sec:results-diagnosis}); the deployed
+configuration records three streams per step.}
 \label{fig:dataset}
 \end{figure}
 
@@ -311,7 +322,8 @@ Each demonstration is labelled with a natural-language instruction sampled, at
 collection time, from a small library of paraphrase templates parameterised by the
 item name --- for example ``pick up the \{item\}\ and place it in the basket'', ``grab
 the \{item\}\ and put it in the basket'', ``take the \{item\}\ and drop it in the
-basket''. Roughly twenty distinct instructions result across the four items. The
+basket''. Six templates across the four retained items yield 24 distinct
+instructions in total (the full list is given in Appendix~\ref{app:Implementation}). The
 purpose of this variety is to prevent the policy from binding to one exact sentence:
 if every ``milk'' episode used identical wording, the model could in principle key on
 the surface form rather than on the meaning. Paraphrasing forces the language signal
@@ -338,7 +350,7 @@ The closed-loop control cycle proceeds as follows. The current observation is
 assembled and passed through the pre-processor (which applies the frozen
 normalisation statistics); the policy predicts a fifty-step action chunk; the chunk
 is de-normalised by the post-processor; and its actions are applied to the arm
-position servos and the gripper actuator, with the physics stepped roughly
+position servos and the gripper actuator, with the physics stepped exactly
 twenty-five substeps per action (approximately \SI{20}{Hz}) before the next action.
 When the chunk is exhausted the policy re-plans from the new observation. This
 matches the horizon at which the demonstrations were sub-sampled, so that the action
@@ -395,7 +407,7 @@ The decision that makes training feasible within \SI{12}{GB} is to \emph{freeze 
 vision--language backbone} and train only the action expert. The rationale is
 twofold. First, the backbone was pretrained on large image--text and robot corpora
 and already provides strong perception and language grounding; back-propagating
-into its roughly 400~million parameters from only 240 demonstrations would risk
+into its roughly 400~million parameters from only 208 training demonstrations would risk
 overfitting and catastrophic forgetting of that prior
 \cite{xiang2026posttraining, kiviranta2025smolvla}. In effect, the model already
 knows what the objects are and what the words mean, so fine-tuning need only learn

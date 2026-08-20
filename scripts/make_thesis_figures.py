@@ -20,20 +20,27 @@ INK = "#12223a"; TEAL = "#127c74"; AMBER = "#c8721a"; GREY = "#5a6b7a"; RED = "#
 
 # ── 1. top-down environment layout (factual, from code constants) ─────────────
 def env_layout():
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.set_xlim(-0.55, 0.75); ax.set_ylim(-0.55, 0.55)
+    # Labels are placed to the RIGHT of the shelf: the previous layout right-aligned
+    # them at x=0.44, which ran into the basket box (x 0.11-0.37) and its caption.
+    fig, ax = plt.subplots(figsize=(9.5, 5))
+    ax.set_xlim(-0.55, 1.15); ax.set_ylim(-0.55, 0.55)
     ax.set_xlabel("x  — depth toward shelf (m)"); ax.set_ylabel("y — lateral (m)")
     ax.set_aspect("equal")
     # shelf (back)
     ax.add_patch(Rectangle((0.53, -0.55), 0.16, 1.10, facecolor="#c9ced4", edgecolor=INK, lw=1.5))
-    ax.text(0.61, 0.48, "shelf", ha="center", fontsize=10, rotation=90, color=INK)
+    ax.text(0.61, 0.44, "shelf", ha="center", fontsize=10, rotation=90, color=INK)
     # items on the shelf front (x = PRODUCT_FRONT_X ~ 0.53), y positions from PRODUCTS
     items = [("milk", -0.26), ("cola", -0.13), ("bread", 0.00), ("cereal", 0.15), ("bottle", 0.34)]
     for name, y in items:
-        col = "#9aa4ad" if name == "cereal" else TEAL
+        excluded = name == "cereal"
+        col = "#9aa4ad" if excluded else TEAL
         ax.add_patch(Circle((0.50, y), 0.035, facecolor=col, edgecolor=INK, lw=1.2, zorder=3))
-        ax.text(0.44, y, f"{name} (y={y:+.2f})", ha="right", va="center", fontsize=9, color=INK)
-    ax.text(0.50, -0.42, "cereal excluded\n(grip slip)", ha="center", fontsize=7.5, color=GREY)
+        label = f"{name} (y={y:+.2f})" + ("\nexcluded — grip slip" if excluded else "")
+        ax.annotate(label, xy=(0.535, y), xytext=(0.73, y),
+                    ha="left", va="center", fontsize=9,
+                    color=GREY if excluded else INK,
+                    arrowprops=dict(arrowstyle="-", lw=0.8,
+                                    color="#b8c0c8", shrinkA=0, shrinkB=2))
     # robot base + arm mount
     ax.add_patch(Circle((-0.30, 0.0), 0.12, facecolor="#e9edf1", edgecolor=INK, lw=1.5, zorder=2))
     ax.text(-0.30, 0.0, "base", ha="center", va="center", fontsize=9, color=INK)

@@ -12,7 +12,7 @@ First, the largest improvements came from \emph{methodology, not model scale}. T
 preliminary study (\refsec{sec:results-journey}) showed that fixing a success-metric
 bug and removing duplicated demonstrations moved real performance far more than any
 architectural change, and the supermarket result was reached with a
-\emph{frozen} backbone and only 240 demonstrations. This is consistent with the
+\emph{frozen} backbone and only 208 training demonstrations. This is consistent with the
 literature: $\pi_{0.5}$ and RoboAgent both attribute performance to data diversity
 and composition rather than to scaling the action model alone
 \parencite{black2025pi05, bharadhwaj2024roboagent}. The frozen-backbone strategy
@@ -36,7 +36,7 @@ executes a single memorised trajectory.
 The success of the frozen-backbone strategy deserves emphasis, because it reframes
 what fine-tuning a VLA on a small dataset actually involves. The intuition that a
 policy must ``learn to see'' the objects is misleading in this setting: the backbone
-already sees and reads competently from its pretraining, and the 240 demonstrations
+already sees and reads competently from its pretraining, and the 208 training demonstrations
 supply only the missing ingredient --- how this particular embodiment should move to
 act on what is already perceived. This division of labour is what makes the data
 requirement so modest, and it explains why an attempt to retrain the perception on so
@@ -161,11 +161,12 @@ motivated directly by a limitation or observation of the present work.
 \paragraph{Whole-body control.} Controlling the base and arm as a single system,
 rather than parking the base and then moving the arm, would let the robot reach while
 repositioning --- extending its effective workspace, reaching around obstacles, and
-approaching awkward items (such as the far-edge milk carton) from a more favourable
-base pose. The parked-base assumption made here simplifies the manipulation problem
-but is also, in part, responsible for the milk carton's difficulty, since that item
-is only reachable at near-full extension; a whole-body policy would fold the base
-positioning into the same optimisation as the reach.
+approaching items from a more favourable base pose. The parked-base assumption made
+here simplifies the manipulation problem: every item must be reached from a single
+fixed stance, so the policy has one approach geometry per item and no means of
+improving it. A whole-body policy would fold base positioning into the same
+optimisation as the reach, allowing a poor approach angle to be corrected by moving
+rather than by stretching.
 
 \paragraph{Tactile and force sensing.} The clearest capability gap in this thesis is
 grasping: the milk carton grasps at 70\% and the cereal box is excluded entirely for

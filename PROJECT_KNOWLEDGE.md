@@ -77,7 +77,9 @@ list); this project is the **manipulation half (Part A)**.
 - **240 demonstrations** (60/item × 4 items), successes only.
 - Per step: 3 images (wrist/scene/basket 96×96), 7-D state (6 joints + gripper),
   7-D action, language instruction.
-- **~20 instruction paraphrases** (`shared/instruction_templates.py`), one/episode.
+- **6 paraphrase templates** (`shared/instruction_templates.py`), one/episode →
+  6 × 4 items = **24 distinct instructions** (was previously recorded here as "~20
+  paraphrases"; 20 was a miscount of the instruction total, not the template count).
   Same module used at inference (train/deploy consistency).
 - Per-episode positional jitter (±2 cm); grasp IK re-solved on settled position.
 - Recorded 100 Hz → subsampled 5× → **20 fps**. LeRobot format (parquet + mp4).
@@ -109,6 +111,12 @@ list); this project is the **manipulation half (Part A)**.
   same checkpoint.
 
 ## 9. RESULTS (headline numbers — memorise these)
+
+> ⚠️ **These numbers are under review — see `REVIEW_REPORT.md` before quoting them.**
+> They are measured on a **fixed object pose**: the evaluation path applies no
+> positional jitter. Under the same ±2 cm jitter used to collect the training data,
+> 15k placement is **58.8%** (95% CI 48–69), not 80%. Whether the headline changes is
+> pending supervisor discussion; do not quote 80% without stating the protocol.
 - **Overall (best checkpoint = 15k): task completion 80% (95% CI 70–87),
   grasp 92.5%, over 320 trials.**
 - **Per item (n=20, placement):** cola **95%**, bottle **90%**, bread **75%**,
@@ -122,14 +130,24 @@ list); this project is the **manipulation half (Part A)**.
 - **Interpretability:** SmolVLA plans 50 steps ahead; at frame 0 (arm at home) its
   plan already closes the gripper at +16 → it "decides to grasp" before reaching.
 - **Orchestrator:** menu → collect items in order, basket accumulates, retry on
-  miss. Known limitation: multi-item lists degrade (full basket = OOD view).
+  miss. Known limitation: multi-item lists degrade — but **not** because of basket
+  occupancy (EXP-5 refuted that: 0/1/2 items already in basket → 61.8/58.3/66.7%).
+  Complete-list success is 45% (2-item) and 30% (3-item). Mechanism unresolved.
 
 ## 10. Known limitations
-- Milk weakest (60% place / 70% grasp) — recoverable with milk-specific tuning.
-- Multi-item lists < single picks — distribution shift (trained with empty basket).
+- **Evaluated on a fixed object pose.** `env.reset()` applies no jitter; under ±2 cm
+  jitter placement falls to 58.8%. See `REVIEW_REPORT.md` §1.
+- **No visual grounding.** The policy maps word → memorised trajectory: displace an
+  item and it still reaches the trained position (216/216 trials). `REVIEW_REPORT.md` §2.
+- Milk weakest (60% place / 70% grasp) — partly a **metric artefact**: `grasped` is
+  `max_lift > 0.05 m` and milk's median lift is 0.054 m, so its grasp rate is a lower
+  bound. `REVIEW_REPORT.md` §7.
+- Multi-item lists < single picks — **not** explained by basket occupancy (EXP-5).
 - Cereal excluded (grip slip).
 - Simulation only (no sim-to-real claimed).
-- Flow-matching stochastic → run-to-run variance (hence 320 trials + CIs).
+- Flow-matching stochastic → run-to-run variance (the eval sets no torch seed).
+- **No training loss log exists** for the v2 run (`log_freq` set, stdout not captured).
+- **π0 was never trained** — crashed before step 1 on a PaliGemma API error.
 
 ## 11. The ideal (unconstrained) system
 Not "a bigger model" — some limits are physical (a huge model can't run a fast/safe
