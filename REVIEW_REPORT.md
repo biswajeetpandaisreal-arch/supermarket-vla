@@ -21,8 +21,11 @@ claims do not survive testing, and one missing control turns out to reframe the 
 2. The policy has **no visual grounding**. It maps each word to a memorised trajectory —
    216/216 displaced-item reaches went to the trained position, 0/216 to the actual one.
 3. **π0 was never trained**, so the abstract's claim that it failed is unevidenced.
-4. A **52M ACT beats the 450M SmolVLA** on the same item, same data, same protocol. What the
-   VLA buys is item *selection*, not motor competence.
+4. A **52M ACT matches or beats the 450M SmolVLA** on the one item tested. This is a bound on
+   capacity, not a like-for-like contest: the per-item ACT is solving an easier problem — a
+   single trajectory with no item selection — and only one item was run. The defensible
+   statement is the one in §3: **the VLA's contribution is item selection, not manipulation
+   quality.**
 
 None of this makes the work bad. Findings 1, 2 and 4 are, stated honestly, a **better thesis**
 than the current one — they replace a generic "small VLAs work" claim with a specific,
@@ -45,10 +48,14 @@ I re-ran all 320 trials with the same ±2 cm jitter applied at evaluation time:
 | 5k | 68.8% | 53.8% | 65.0% |
 | 10k | 68.8% | 53.8% | 63.8% |
 | **15k (deployed)** | **80.0%** | **58.8%** (95% CI 48–69) | 80.0% |
-| 20k | 75.0% | **62.5%** ← best | 76.2% |
+| 20k | 75.0% | 62.5% | 76.2% |
 
-Grasp at 15k falls 92.5% → 80.0%. **The checkpoint ranking also inverts**: 20k, not 15k, is
-best under jitter.
+Grasp at 15k falls 92.5% → 80.0%.
+
+20k is nominally highest under jitter, but **do not read that as a re-ranking**: 50/80 vs 47/80
+is three trials, and the paired tests in §4 — run on this same jittered data — find no
+significant difference between any pair of checkpoints on placement (15k vs 20k, p = 0.69).
+The checkpoints are indistinguishable on the task metric under both protocols.
 
 ### The control that makes this safe to claim
 
@@ -61,7 +68,17 @@ So I re-ran 15k with jitter **off** on the identical new code path:
 | **My instrumentation, jitter = 0** | **81.2%** (CI 71–88) | **91.2%** |
 
 The instrumentation reproduces the published result. The drop is caused by the jitter, not by
-the change. Per item at 15k:
+the change.
+
+The eval-time jitter is byte-identical to the collection-time jitter: same ±0.025 m, same
+uniform draw on x and y, same `qvel` zeroing, same `step_sim(30)` re-settle, same
+`noslip_iterations = 5` (`scripts/rollout.py:jitter_item` vs `scripts/scripted_expert.py:74-81`).
+One asymmetry is worth stating in the thesis because it sharpens the result rather than
+weakening it: **the scripted expert re-solves grasp IK on the settled position, so it adapts to
+the jitter; the policy has no such mechanism.** That is precisely why the expert reaches 96–100%
+per item under jitter while the policy falls to 58.8%.
+
+Per item at 15k:
 
 | item | fixed scene | ±2 cm jitter |
 |---|---|---|
@@ -82,7 +99,14 @@ reviewer who runs your own `collect_data.py` jitter will find 58.8% in ten minut
 §3.1.1 claims *"the policy must localise the named item from pixels alone."* It does not.
 
 I moved items to positions the policy never trained on, leaving instructions unchanged
-(`scripts/exp3_grounding.py`, 264 trials at the 15k checkpoint).
+(`scripts/exp3_grounding.py`, 15k checkpoint).
+
+**Trial accounting** (verified against `outputs/review/exp3_grounding.csv`, 264 rows):
+22 (block, item) combinations × 12 trials = **264 trials = 48 baseline + 216 displaced**.
+The verdict below is computed over the **216 displaced trials only** — baseline trials have no
+displacement, so the "actual vs trained" comparison is undefined for them. **The table below is
+an excerpt showing 10 of the 22 combinations**; the complete table is in
+`outputs/review/exp3_grounding.log`.
 
 | block | item | item actually at | policy reached (mean) | SD | placed |
 |---|---|---|---|---|---|
@@ -97,7 +121,8 @@ I moved items to positions the policy never trained on, leaving instructions unc
 | unseen +0.08 | milk_carton | +0.080 | −0.237 | 0.007 | 0/12 |
 | unseen +0.22 | bread_loaf | +0.220 | +0.002 | 0.008 | 0/12 |
 
-**Verdict: matched the actual position 0/216; matched the trained position 216/216.**
+**Verdict, over all 216 displaced trials: matched the actual position 0/216; matched the trained
+position 216/216.** No exceptions.
 
 Reach SD is 0.003–0.010 m — each word triggers an essentially fixed motion. The policy *is*
 language-conditioned (the existing Table 4.2 evidence is correct as far as it goes), but the
@@ -116,7 +141,7 @@ object is not exactly there. The two headline findings are one finding.
 
 ---
 
-## 3. EXP-7 — the missing capacity control, and it inverts the expected result
+## 3. EXP-7 — the missing capacity control, and it does not favour the larger model
 
 RQ2 asks whether gains come from model capacity or from data/metrics, but SmolVLA was the only
 policy ever run on the supermarket task. I trained ACT on the identical dataset, cameras,
@@ -162,39 +187,52 @@ collapses onto one clean mode, and cola is the most forgiving target.
 
 ## 4. EXP-2 — paired McNemar (trials are paired by construction)
 
-Because the scene is deterministic and instruction seeds are shared across checkpoints, trials
-are paired, so McNemar's exact test applies.
+Each (item, trial) seed is shared across checkpoints, so trials are paired and McNemar's exact
+test applies. **These tests are computed on the jittered re-run**
+(`outputs/review/exp1_instrumented_jitter.csv`), not the published fixed-scene data.
 
-**Placement — no pair of checkpoints differs significantly:**
+**Multiple comparisons.** Six pairwise tests per metric, decided post hoc rather than
+pre-specified, so raw p-values overstate significance. Holm-corrected values (m = 6) are
+reported alongside; Bonferroni's threshold here is p < 0.0083.
 
-| comparison | discordant | p | verdict |
+**Placement — nothing survives, corrected or not:**
+
+| comparison | discordant | raw p | Holm p | verdict |
+|---|---|---|---|---|
+| 5k vs 20k | 14 / 7 | 0.189 | 1.000 | n.s. |
+| 10k vs 20k | 15 / 8 | 0.210 | 1.000 | n.s. |
+| 5k vs 15k | 16 / 12 | 0.572 | 1.000 | n.s. |
+| 10k vs 15k | 20 / 16 | 0.618 | 1.000 | n.s. |
+| 15k vs 20k | 14 / 11 | 0.690 | 1.000 | n.s. |
+| 5k vs 10k | 11 / 11 | 1.000 | 1.000 | n.s. |
+
+**Grasp — one comparison survives correction:**
+
+| comparison | raw p | Holm p | verdict |
 |---|---|---|---|
-| 5k vs 10k | 11 / 11 | 1.000 | n.s. |
-| 5k vs 15k | 16 / 12 | 0.572 | n.s. |
-| 5k vs 20k | 14 / 7 | 0.189 | n.s. |
-| 10k vs 15k | 20 / 16 | 0.618 | n.s. |
-| 10k vs 20k | 15 / 8 | 0.210 | n.s. |
-| 15k vs 20k | 14 / 11 | 0.690 | n.s. |
+| 5k vs 15k | **0.008** | **0.048** | **significant** |
+| 5k vs 20k | 0.022 | 0.110 | n.s. after correction |
+| 10k vs 15k | 0.029 | 0.116 | n.s. after correction |
+| 10k vs 20k | 0.031 | 0.116 | n.s. after correction |
+| 15k vs 20k | 0.607 | 1.000 | n.s. |
+| 5k vs 10k | 1.000 | 1.000 | n.s. |
 
-**Grasp — a real training effect does exist:**
+So the defensible claim is narrow: **grasp success at 15k is significantly better than at 5k**
+(Holm p = 0.048), and nothing else separates. The remaining three raw-significant grasp
+comparisons (0.022–0.031) do not survive correction and should be reported as suggestive at
+most. If you prefer to report them uncorrected, the comparisons must be declared pre-specified,
+which they were not.
 
-| comparison | p | verdict |
-|---|---|---|
-| 5k vs 15k | **0.008** | 15k better |
-| 5k vs 20k | **0.022** | 20k better |
-| 10k vs 15k | **0.029** | 15k better |
-| 10k vs 20k | **0.031** | 20k better |
-| 15k vs 20k | 0.607 | n.s. |
-
-This is a **net gain for the thesis**: the paired test detects a genuine grasp improvement from
-5k/10k to 15k/20k that the unpaired two-proportion test could not. But it also confirms there
-is no placement difference to explain, so the "mild over-training" narrative must go.
+This is still a modest **net gain for the thesis** — the paired test finds a grasp effect the
+unpaired two-proportion test could not — but it confirms there is no placement difference at
+any checkpoint pair, so the "mild over-training" narrative must go.
 
 ---
 
 ## 5. EXP-4 — the 0%→80% story, decomposed
 
-The review document assumed the widened basket loosened the success criterion. **It did not.**
+The review document assumed the widened basket loosened the success criterion. **It did not** —
+an objection since withdrawn by the reviewer.
 The criterion is hard-coded at `scripts/rollout.py:149` and never reads `BASKET_HALF`:
 
 ```python
@@ -245,13 +283,24 @@ instead of position, there is **no gradient**:
 | 1 | 58.3% (21/36) |
 | 2 | 66.7% (6/9) |
 
-Degradation tracks **position in the list**, not basket contents. The likely mechanism, and it
-follows directly from EXP-3: earlier picks disturb the remaining items on the shelf, and a
-policy that reaches a fixed memorised pose fails as soon as its target has shifted. That is the
-same failure mode as the jitter collapse.
+**But the positional story is not clean either.** The 2-item lists run 65% → 70%: position 2
+*beats* position 1. Only the 3-item lists show a drop, and at n = 20 per cell the CIs
+(±20 points) overlap heavily. The data do not support a general "degrades with position" claim.
 
-> Replace the occlusion explanation with the disturbance explanation, and cite EXP-3 for the
-> mechanism. It is better evidenced and it unifies three results.
+What the data **do** support, stated conservatively:
+
+1. **The occupancy explanation is refuted.** Placement does not fall as the basket fills.
+   Whatever drives multi-item degradation, it is not the basket occluding the view.
+2. **Complete-list success is low and falls with length** — 45% (2-item) vs 30% (3-item) — which
+   is the number §4.8 should report, since it is what a user of the system experiences.
+3. **The mechanism is unresolved at this sample size.** A candidate consistent with EXP-3 is that
+   earlier picks disturb the remaining items, and a policy reaching a fixed memorised pose fails
+   once its target has shifted. That is the same failure mode as the jitter collapse, but it is
+   a hypothesis here, not a result — testing it needs per-pick logging of the *remaining* items'
+   positions, which this run did not capture.
+
+> Replace the occupancy explanation with (1) and (2), report the complete-list rates, and offer
+> the displacement mechanism explicitly as a hypothesis for future work.
 
 ---
 
@@ -282,9 +331,17 @@ shelf and lowered into the tote, succeeding at the task while scoring `grasped =
 | milk_carton | −0.260 | −0.236 | +0.024 |
 | water_bottle | +0.340 | +0.320 | −0.020 |
 
-|error| correlates with |target y| at **r = 0.919**, a ~6% compression toward the shelf centre.
-This is regression-to-the-mean — the signature of a policy interpolating between memorised
-trajectories, exactly as EXP-3 predicts. It is **not** an edge-of-reach kinematic limit: the
+**All four items reach short, toward the shelf centre.** That directional statement is solid:
+every item's reached |y| is smaller than its target |y|, and bread — the item *at* the centre —
+shows essentially zero error (+0.003 m).
+
+I previously reported a correlation of r = 0.919 between |error| and |target y|. **Do not use
+it.** It rests on four points (p ≈ 0.08) and the relationship is not monotonic: the water bottle
+at |y| = 0.340 has a *smaller* error (0.020) than the milk carton at |y| = 0.260 (0.024). The
+honest claim is directional — a consistent inward bias — not a quantified proportional law.
+
+The bias is still the signature EXP-3 predicts, of a policy interpolating between memorised
+trajectories rather than localising. And it is **not** an edge-of-reach kinematic limit: the
 scripted expert hits 98% on milk with no special tuning, and the water bottle is 8 cm *further*
 out yet scores better.
 
@@ -324,16 +381,16 @@ delete *"is only reachable at near-full extension."*
 > kinematic. First, it is the tallest item, so its peak lift clears the 0.05\,m grasp threshold
 > by the smallest margin (median 0.054\,m), making the grasp metric itself unreliable for this
 > item. Second, the learned reach is systematically compressed toward the shelf centre in
-> proportion to lateral offset (r = 0.92), so the most laterally displaced items are approached
-> least accurately."
+> the shelf centre: all four items are reached slightly short of their true lateral position,
+> so items further from the centre are approached least accurately."
 
 ### TXT-4 — the +0.34 misattribution
 `04-results.tex:245-246`. **y = +0.34 is the water bottle**; milk is at −0.26.
 
 > "The small systematic undershoot (reaching +0.29 for a target at +0.34) is not specific to
-> that item: reach error scales with lateral offset across all four items (r = 0.92), a ~6%
-> compression toward the shelf centre characteristic of a policy interpolating between
-> demonstrated trajectories."
+> that item: all four items are reached slightly short of their true lateral position, a
+> consistent inward bias toward the shelf centre characteristic of a policy interpolating
+> between demonstrated trajectories rather than localising the item visually."
 
 ### TXT-5 — abstract trial-count conflation
 `main.tex:67-69`, plus `01-introduction.tex:115`, `06-conclusions.tex:17`.
@@ -409,7 +466,7 @@ Published protocol, from `outputs/eval_v2_all.log` — placement, n = 20 per cel
 Jittered protocol (this review, `outputs/review/exp1_instrumented_jitter.csv`) — full table with
 Wilson CIs in `outputs/review/analysis_full.txt`.
 
-### FIG-3 — conditional placement: **do not build the table as specified**
+### FIG-3 — conditional placement: **withdrawn by the reviewer; do not build it**
 Placement is **not** a subset of grasp (see §7a), so `P(place | grasp)` from marginals would be
 invented. Under the published protocol milk shows placement > grasp at 5k and 10k. Report the
 grasp-metric caveat instead, or recompute from the per-trial CSVs now available.
@@ -483,10 +540,22 @@ but there is no public repo, licence or dataset location.
 | ACT per-item on cola/milk/bottle | Blocked by the LeRobot episode-subsetting bug (§3). Only the first episode block is safely selectable; bread was used. |
 | EXP-3 extrapolation beyond the trained span | Only interpolation tested (−0.20 … +0.22, inside −0.26 … +0.34). |
 
-**Limitations of this review.** Jitter was tested at one magnitude (±2 cm, matching
-`collect_data.py`); the degradation curve as a function of jitter is unmeasured. The ACT
-comparison rests on one item. EXP-5 used 20 lists per length, so per-position CIs are wide
-(±20 points).
+**Limitations of this review.**
+
+- Jitter was tested at **one magnitude** (±2 cm, matching `collect_data.py`). The degradation
+  curve as a function of jitter is unmeasured, so 58.8% is one point, not a characterisation.
+- The **ACT comparison rests on one item** (bread), and per-item ACT solves an easier problem
+  than SmolVLA — one trajectory, no item selection. It bounds capacity; it is not a like-for-like
+  contest.
+- **EXP-5 is underpowered.** 20 lists per length gives ±20-point CIs, and the 2-item lists show
+  position 2 *above* position 1. The occupancy explanation is refuted; the mechanism is not
+  established.
+- The **checkpoint comparisons were post hoc**, so §4 reports Holm-corrected p-values. Only
+  5k vs 15k grasp survives correction.
+- **EXP-3 tested interpolation only** (−0.20 … +0.22, inside the trained span −0.26 … +0.34).
+  Extrapolation beyond the trained span was not tested.
+- The EXP-6 inward reach bias is **directional only** — four points cannot support a
+  quantified proportional law.
 
 ---
 
@@ -519,9 +588,10 @@ Commits on `thesis-review-fixes`: `fc77bc1` (Phase 0), `1dd1095` (instrumentatio
 
 1. **Re-frame around what you measured.** The strongest version of this thesis is: *a compact
    VLA fine-tuned on 208 positionally-fixed demonstrations learns a language-driven switch over
-   memorised trajectories rather than language-grounded visual selection; at this scale a 52M
-   ACT matches its manipulation quality at a third of the memory, so the VLA's contribution is
-   item selection.* Every clause is now backed by an experiment.
+   memorised trajectories rather than language-grounded visual selection; on the one item where
+   a same-task capacity control was run, a 52M ACT matched its manipulation quality at a third
+   of the memory, indicating that the VLA's contribution here is item selection.* Every clause
+   is backed by an experiment, with the sample sizes stated.
 2. **Report 58.8%,** with 80% as the fixed-pose special case. Defensible beats impressive.
 3. **Fix the ethics letter today.** Five minutes.
 4. **Then** the mechanical corrections: 208, π0, milk geometry, +0.34, §4.6, citations.
