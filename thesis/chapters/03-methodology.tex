@@ -127,7 +127,12 @@ rest of the final configuration for coherence. Each camera is rendered at
 $96\times96$ pixels. These three images, together with the arm's
 seven-dimensional proprioceptive state and the text instruction, constitute the
 entire input to the policy; crucially, \emph{no object coordinates or segmentation
-are provided}, so the policy must localise the named item from pixels alone.
+are provided}, so any localisation of the named item must be derived from pixels. It
+should be noted at the outset --- and is established in \refsec{sec:results-lookup} ---
+that withholding object coordinates does not by itself compel the policy to localise:
+because each item occupies a fixed position throughout the demonstrations, associating
+the item word with a memorised trajectory also fits the data, and that is what the
+trained policy is found to do.
 
 \begin{figure}[ht]
 \begin{center}

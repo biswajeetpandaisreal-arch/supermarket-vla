@@ -65,7 +65,11 @@ progression, and \reffig{fig:robots} shows the three robots involved.
 \caption{The progression of the project: a large model works on RoboCasa but is
 undeployable; small models fail the benchmark; a controlled UR10e pilot succeeds;
 the lessons scale to the supermarket task. Success rate rises 0\% $\rightarrow$
-$\sim$53\% $\rightarrow$ 80\%.}
+$\sim$53\% $\rightarrow$ 80\%. These three rates are \emph{not} directly comparable:
+task difficulty decreases from left to right, and the three stages differ in
+benchmark, robot and embodiment. The supermarket figure is additionally measured at a
+fixed object pose; under the \SI{2}{cm} jitter of \refsec{sec:results-robustness} it
+is 58.8\%.}
 \label{fig:journey}
 \end{figure}
 
@@ -94,6 +98,17 @@ checkpoints; the best-checkpoint headline aggregates its 80 item-trials with the
 per-item detail below). The result is not a single fortunate demonstration but an
 aggregate over many trials with confidence intervals throughout.
 
+One property of the evaluation protocol must be stated at the outset, because it
+qualifies this number and is examined directly in \refsec{sec:results-robustness}.
+Each trial resets the simulator to a fixed state, so within a given item every trial
+begins from an \emph{identical} object pose; what varies between trials is the
+instruction paraphrase and the stochasticity of the policy's own flow-matching
+sampler. The \SI{2}{cm} per-episode positional jitter described in
+\refsec{sec:m-data} is applied when \emph{collecting} demonstrations, not when
+evaluating them. The 80\% figure is therefore a success rate at a fixed object pose.
+\refsec{sec:results-robustness} re-runs the entire evaluation with that same jitter
+applied at test time and reports the resulting degradation, which is substantial.
+
 This figure should be read against two reference points. Kiviranta reports an 80\%
 single-task success rate fine-tuning the same SmolVLA checkpoint on real SO-101
 hardware from around 100 demonstrations \cite{kiviranta2025smolvla}, so the result
@@ -102,9 +117,20 @@ strict 12~GB budget and with a language-conditioned choice among four items rath
 than a single fixed task. The second reference point is internal: the same family of
 small models scored 0/20 on the RoboCasa benchmark (\refsec{sec:results-journey}), so
 the 80\% here reflects not a change of model but the controlled task and the
-disciplined methodology built around it. Together these answer RQ1 affirmatively --- a
-compact VLA is deployable on a single consumer GPU at a useful success rate --- while
-the remainder of the chapter examines \emph{why} it works and where it does not.
+disciplined methodology built around it. A caveat applies to the first comparison:
+Kiviranta's 80\% is measured on physical hardware, where object pose, lighting and
+contact vary from trial to trial, whereas the figure here is obtained in simulation at
+a fixed object pose. The two numbers coincide but are not measuring the same thing,
+and the comparison should be read as one of regime rather than of equivalence.
+
+Together these answer RQ1 affirmatively but with a stated bound: a compact VLA can be
+fine-tuned and run on a single consumer GPU and will complete the task most of the
+time \emph{under the conditions it was trained on}. Whether 80\% constitutes a
+``useful'' rate depends on the tolerance one sets in advance; for shelf-picking beside
+people, a rate that leaves one item in five on the floor would not be deployable, so
+the honest reading is that this demonstrates feasibility rather than readiness. The
+remainder of the chapter examines why it works, how far it generalises, and where it
+does not.
 
 \section{Per-item results}
 \label{sec:results-peritem}
@@ -248,23 +274,31 @@ fixed motion, the scene was held constant and only the instruction word was
 changed. \reftab{tab:grounding} reports the gripper's lateral ($y$) position at
 the reach, against the target item's true position. The arm reaches the
 \emph{named} item --- left for milk, centre for bread, right for the water bottle
---- so the target moves with the word. This is genuine language grounding, not a
-memorised trajectory; the graded per-item success rates in
-\reftab{tab:peritem} are likewise the signature of a learned controller rather than
-a lookup.
+--- so the target moves with the word. The policy is therefore genuinely
+\emph{language-conditioned}: the instruction, and nothing else about the scene,
+determines where the arm goes.
 
-The design of this test is deliberately adversarial to the null hypothesis. If the
-policy had learned a single fixed reaching motion --- ignoring the instruction and
-exploiting, say, the most salient object --- then changing only the words would leave
-the reach unchanged, and the reached position would be constant across the three
-instructions. Instead the reached lateral position tracks the named item across the
-full width of the shelf, from $-0.24$ to $+0.29$\,\si{m}, a span far larger than the
-few-centimetre residual error, so the instruction is demonstrably the causal variable.
-This matters because language conditioning is the property that distinguishes a VLA
-from the non-VLA ACT baseline (\refsec{sec:bg-act}) and is, per
-\textcite{kiviranta2025smolvla}, easy to claim but fragile in practice; verifying it
-with a controlled intervention rather than assuming it is therefore central to
-answering RQ3. The small systematic undershoot on the far item (reaching $+0.29$ for a
+This establishes less than it may appear to, however, and
+\refsec{sec:results-lookup} shows that the stronger reading is false. Two hypotheses
+survive this test equally well. Under the first, the policy reads the instruction,
+locates the named object in its camera images, and reaches to wherever that object
+is. Under the second, the policy has simply learned an association from each item
+\emph{word} to a fixed arm trajectory, with no visual localisation at all. Because
+every item occupied a fixed position throughout training and this test, both
+hypotheses predict \reftab{tab:grounding} exactly. Distinguishing them requires
+moving the items, which \refsec{sec:results-lookup} does.
+
+The test does rule out one important null hypothesis. If the policy had learned a
+single fixed reaching motion --- ignoring the instruction and exploiting, say, the most
+salient object --- then changing only the words would leave the reach unchanged, and the
+reached position would be constant across the three instructions. Instead the reached
+lateral position tracks the named item across the full width of the shelf, from
+$-0.24$ to $+0.29$\,\si{m}, a span far larger than the few-centimetre residual error,
+so the instruction is demonstrably the causal variable. This matters because language
+conditioning is the property that distinguishes a VLA from the non-VLA ACT baseline
+(\refsec{sec:bg-act}) and is, per \textcite{kiviranta2025smolvla}, easy to claim but
+fragile in practice; \refsec{sec:results-act} makes that contrast concrete by training
+ACT on the same data. The small systematic undershoot on the far item (reaching $+0.29$ for a
 target at $+0.34$) belongs to the \emph{water bottle}, not the milk carton, which sits
 at $-0.26$. It is not specific to that item: all four items are reached slightly short
 of their true lateral position, a consistent inward bias toward the shelf centre. Such
@@ -288,6 +322,199 @@ Instruction & Item's $y$ (m) & Gripper reached $y$ (m) \\
 \end{tabular}
 \end{center}
 \label{tab:grounding}
+\end{table}
+
+\section{Does the policy localise the item, or recall its position?}
+\label{sec:results-lookup}
+The test of \refsec{sec:results-language} cannot separate visual localisation from a
+learned word-to-trajectory association, because the items never moved. This section
+moves them. The policy and the instructions are unchanged; only the physical layout of
+the shelf differs. Two interventions were run at the deployed 15k checkpoint, 12 trials
+per condition, 264 trials in total.
+
+In the \emph{swap} condition the milk carton and bread loaf exchange positions, so the
+milk carton now sits at $y=0.00$ and the loaf at $y=-0.26$. In the \emph{displaced}
+conditions each item in turn is placed at one of four lateral positions never used in
+training ($-0.20$, $-0.06$, $+0.08$, $+0.22$), all well inside the demonstrated span so
+that the test probes interpolation rather than extrapolation beyond the arm's reach.
+For each trial the gripper's lateral position at the moment it closes is compared with
+two predictions: the item's \emph{actual} position in that trial, and the position that
+item occupied \emph{during training}.
+
+\reftab{tab:lookup} reports the outcome, and it is unambiguous. Across all 216
+displaced trials the reach matched the trained position and never the actual one. When
+the milk carton is moved to the centre of the shelf, the policy still reaches to
+$y=-0.235$ --- where the carton used to be --- and closes its gripper on empty air; the
+same holds for every item at every displaced position. The standard deviation of the
+reach within a condition is between $0.003$ and $0.010$\,\si{m}, so each instruction
+elicits what is essentially a single fixed motion. Placement success under displacement
+is $1/216$, and that one success occurred when an item happened to be moved to within
+\SI{6}{cm} of its trained position.
+
+The conclusion is that the policy is language-conditioned but not visually grounded. It
+has learned an association from each item word to a memorised trajectory, and performs
+no localisation of the named object from its camera images. This directly contradicts
+the design intent stated in \refsec{sec:m-render}, where the absence of object
+coordinates in the observation was taken to imply that the policy \emph{must} localise
+from pixels. It need not, and it does not: with every item at a fixed position in all
+208 training episodes, an association from word to trajectory fits the demonstrations
+exactly and is a far simpler function to learn than visual search. The consistent
+inward reach bias noted in \refsec{sec:results-language} is a further symptom of the
+same mechanism --- interpolation between a small set of memorised reaches rather than
+independent localisation of each target.
+
+This is the answer to RQ3, and it is a qualified one. The instruction is genuinely the
+causal variable governing the policy's behaviour, which is not trivial and is more than
+the ACT baseline of \refsec{sec:results-act} achieves. But the mechanism is recall, not
+perception, and the distinction matters for any claim about generalisation.
+
+\begin{table}[ht]
+\caption{Displacement test at the 15k checkpoint ($n=12$ per condition). ``Reached
+$y$'' is the gripper's lateral position when it closes. Under every displacement the
+policy reaches the position the item occupied \emph{in training}, not the position it
+actually occupies.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{llccc}
+\toprule
+Condition & Item & Actual $y$ & Reached $y$ & Placed \\
+\midrule
+Baseline  & cola can     & $-0.13$ & $-0.118$ & 11/12 \\
+Baseline  & water bottle & $+0.34$ & $+0.320$ & 11/12 \\
+Baseline  & milk carton  & $-0.26$ & $-0.236$ & 7/12 \\
+Baseline  & bread loaf   & $\phantom{-}0.00$ & $+0.003$ & 10/12 \\
+\midrule
+Swap      & milk carton  & $\phantom{-}0.00$ & $-0.235$ & 0/12 \\
+Swap      & bread loaf   & $-0.26$ & $+0.004$ & 0/12 \\
+\midrule
+Displaced & cola can     & $-0.06$ & $-0.117$ & 0/12 \\
+Displaced & water bottle & $+0.08$ & $+0.318$ & 0/12 \\
+Displaced & milk carton  & $+0.08$ & $-0.237$ & 0/12 \\
+Displaced & bread loaf   & $+0.22$ & $+0.002$ & 0/12 \\
+\midrule
+\multicolumn{3}{l}{\textbf{All 216 displaced trials}} &
+\multicolumn{2}{l}{\textbf{216/216 matched trained position}} \\
+\multicolumn{3}{l}{} & \multicolumn{2}{l}{\textbf{0/216 matched actual position}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:lookup}
+\end{table}
+
+\section{Robustness to object pose}
+\label{sec:results-robustness}
+\refsec{sec:results-lookup} predicts that the policy should degrade as soon as an item
+is not exactly where it was demonstrated, even by a small amount. This section measures
+that directly, and in doing so qualifies the headline result.
+
+The demonstrations were collected with a per-episode positional jitter of \SI{2}{cm}
+in $x$ and $y$ (\refsec{sec:m-data}), so the policy was trained on a distribution of
+object poses rather than on one pose. The evaluation, however, resets the simulator to
+a fixed state, so all reported trials so far place each item at its nominal position.
+The entire four-checkpoint evaluation was therefore re-run with the identical jitter
+applied at test time: same magnitude, same uniform distribution, same re-settling
+procedure. \reftab{tab:robustness} reports both protocols.
+
+At the deployed checkpoint, task completion falls from 80.0\% to \textbf{58.8\%}
+(95\% Wilson CI 48--69) and grasp success from 92.5\% to 80.0\%. The degradation is
+consistent across all four checkpoints. To confirm that this is caused by the jitter
+rather than by any difference in the re-run itself, the 15k checkpoint was also
+re-evaluated with jitter disabled on the same instrumented code path; it returned
+81.2\% task completion and 91.2\% grasp, reproducing the original figures and
+isolating object pose as the operative variable.
+
+Two points follow. First, the honest statement of this thesis's headline result is
+that the policy completes the task 80\% of the time at the object pose it was
+evaluated on, and 58.8\% of the time when the object is displaced by up to \SI{2}{cm}
+--- a displacement small enough that a human would not notice it, and one the policy
+saw throughout training. Second, the magnitude of the drop is itself evidence for
+\refsec{sec:results-lookup}: a policy that localised its target visually would be
+largely indifferent to a \SI{2}{cm} offset, whereas a policy executing a memorised
+reach degrades exactly as observed. It is worth noting that the scripted expert, which
+re-solves its grasp inverse kinematics on the settled object position, achieves
+96--100\% per item under the same jitter; the information required to succeed is
+present in the scene, and the learned policy does not use it.
+
+\begin{table}[ht]
+\caption{Task completion under the two evaluation protocols ($n=80$ per checkpoint).
+``Fixed pose'' is the protocol used throughout the rest of this chapter; ``jittered''
+applies the same \SI{2}{cm} positional jitter used to collect the training data.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{Task completion} & \multicolumn{2}{c}{Grasp} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Checkpoint & Fixed pose & Jittered & Fixed pose & Jittered \\
+\midrule
+5{,}000  & 68.8\% & 53.8\% & 72.5\% & 65.0\% \\
+10{,}000 & 68.8\% & 53.8\% & 80.0\% & 63.8\% \\
+\textbf{15{,}000} & \textbf{80.0\%} & \textbf{58.8\%} & \textbf{92.5\%} & \textbf{80.0\%} \\
+20{,}000 & 75.0\% & 62.5\% & 88.8\% & 76.2\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:robustness}
+\end{table}
+
+\section{A capacity control: ACT on the same task}
+\label{sec:results-act}
+RQ2 asks whether improvements at this scale come from model capacity or from the
+quality of the data and methodology. The evidence presented so far is indirect: the
+pilot study (\refsec{sec:results-journey}) compared model classes, but on a different
+task and embodiment. To provide a same-task control, ACT
+\parencite{zhao2023act} --- a 52-million-parameter imitation policy with no language
+input at all --- was trained on the identical dataset, cameras, action space and step
+budget, and evaluated with the identical protocol.
+
+ACT has no text encoder, so two variants were trained, and the distinction matters for
+interpreting the result. The first was trained on a \emph{single} item (the bread
+loaf, 52 episodes), which removes the need to select among items and isolates motor
+competence. The second was trained on all four items, so that the effect of having no
+language pathway could be measured. \reftab{tab:act} reports both.
+
+The single-item ACT achieves 100\% task completion at fixed pose and 85\% under
+jitter, against 75\% and 60\% for SmolVLA on the same item, using $1/8$ of the
+parameters and \SI{0.95}{GB} of GPU memory against approximately \SI{3}{GB}. This is
+not a like-for-like contest --- the single-item ACT solves an easier problem, and only
+one item was tested --- so it should be read as a bound rather than a ranking. But the
+bound is informative: at this data scale, the additional capacity of the VLA does not
+purchase better manipulation.
+
+What it does purchase is visible in the second variant. Trained on all four items, ACT
+executes the same trajectory on every trial regardless of the instruction, reaching
+$y=-0.124$ with a standard deviation of $0.000$\,\si{m} --- the cola can's position.
+It succeeds on the cola can 20 times out of 20 and never on anything else, giving 25\%
+overall. Its L1 training objective is median-seeking, so rather than blurring the four
+demonstrated behaviours into a physically meaningless average reach, it collapses onto
+the single most reliable one.
+
+Taken together with \refsec{sec:results-lookup}, this sharpens the answer to RQ2. The
+VLA's contribution over a much smaller non-language policy is \emph{item selection},
+not manipulation quality; and that selection is implemented as a learned association
+from word to trajectory rather than as visual grounding. The system is, in effect, a
+small set of memorised behaviours with a language-driven switch between them --- which
+is a real capability, and precisely the capability the ACT baseline lacks, but a
+narrower one than ``a vision--language--action model that localises and grasps a named
+object''.
+
+\begin{table}[ht]
+\caption{Same-task capacity control. ACT is trained on the identical dataset, cameras,
+action space and step budget, and evaluated with the identical protocol
+($n=20$ per item).}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lccccc}
+\toprule
+Policy & Params & Language & Item(s) & Fixed pose & Jittered \\
+\midrule
+SmolVLA (15k)     & 450\,M & yes & bread loaf & 75\% & 60\% \\
+ACT, single item  & 52\,M  & no  & bread loaf & \textbf{100\%} & \textbf{85\%} \\
+ACT, all items    & 52\,M  & no  & all four   & 25\% & 13.8\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:act}
 \end{table}
 
 \section{Checkpoint selection}
@@ -420,23 +647,63 @@ the start, not between items), and re-attempts an item if it misses. This
 demonstrates the intended end-to-end behaviour: a language/menu request in,
 collected items out.
 
-A caveat observed empirically is that multi-item completion is lower than the
-product of the single-item rates would predict. When the first item is already in
-the basket, the scene and basket cameras show a configuration the policy never saw
-during training (which always began with an empty basket), and this
-out-of-distribution view degrades the subsequent pick --- the far-edge water bottle
-being the most sensitive. The first item of a list is therefore always as reliable
-as the single-item rates in \reftab{tab:peritem}; later items are somewhat less so.
-The menu interface (which constrains the request to the known catalogue) and the
-retry-on-miss behaviour mitigate this, but the underlying distribution shift is a
-data problem, analysed with its remedy in \refsec{sec:disc-limits}.
+Multi-item completion is lower than the product of the single-item rates would
+predict. To quantify this rather than assert it, 40 randomised lists were run --- 20 of
+length two and 20 of length three, 100 picks in total --- with retries disabled so that
+each position in the list is a single clean trial. \reftab{tab:multiitem} reports the
+result. Completing a whole list succeeds 45\% of the time for two items and 30\% for
+three.
+
+An explanation offered in earlier drafts of this work was that an accumulating basket
+presents an out-of-distribution view, since every training episode began with an empty
+basket. That explanation is not supported. Scoring the same picks by how many items
+were already in the basket at the time gives 61.8\% (none), 58.3\% (one) and 66.7\%
+(two): there is no downward trend, and the intervals overlap heavily. Basket occupancy
+is not what degrades the later picks.
+
+What the data do show is a drop across positions in the three-item lists (80\%, 45\%,
+45\%), though this should be read cautiously: the two-item lists show no such pattern
+(65\% then 70\%), and at $n=20$ per cell the confidence intervals span roughly twenty
+points either way. The mechanism is therefore not established here. A candidate
+consistent with \refsec{sec:results-lookup} is that each pick disturbs the remaining
+items on the shelf --- the gripper brushes neighbours during extraction --- and a policy
+that reaches a memorised position rather than a perceived one fails as soon as its
+target has shifted, exactly as it does under the deliberate displacement of
+\refsec{sec:results-lookup} and the \SI{2}{cm} jitter of
+\refsec{sec:results-robustness}. Testing this would require logging the poses of the
+\emph{remaining} items after each pick, which these runs did not capture, and is left
+as future work. The menu interface and the retry-on-miss behaviour mitigate the
+observed unreliability without addressing its cause.
+
+\begin{table}[ht]
+\caption{Multi-item orchestrator, 40 randomised lists and 100 picks, retries disabled.
+Success is reported by position in the list and, separately, by how many items were
+already in the basket when the pick began.}
+\begin{center}
+\tagpdfsetup{table/header-rows={1}}
+\begin{tabular}{lccc}
+\toprule
+List length & Position 1 & Position 2 & Position 3 \\
+\midrule
+Two items   & 65.0\% & 70.0\% & --- \\
+Three items & 80.0\% & 45.0\% & 45.0\% \\
+\midrule
+\multicolumn{4}{l}{Complete list: \textbf{45.0\%} (two items), \textbf{30.0\%} (three items)} \\
+\midrule
+Items already in basket & 0 & 1 & 2 \\
+Task completion & 61.8\% & 58.3\% & 66.7\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:multiitem}
+\end{table}
 
 Two design choices in the orchestrator are worth noting. First, item selection is
 made through a fixed menu of the known products rather than by parsing arbitrary free
-text; this is a deliberate reliability decision, since the language competence that
-matters for the task is grounding a named item in the scene (which the policy does),
-not open-vocabulary parsing (which it was not trained for and which a small brittle
-parser would get wrong). Second, between items the arm is returned to its home
+text; this is a deliberate reliability decision, since the language competence the
+policy actually has is selecting among the four items it was trained on
+(\refsec{sec:results-lookup}), not open-vocabulary parsing, and a menu makes that
+boundary explicit rather than inviting requests the policy cannot honour. Second, between items the arm is returned to its home
 configuration --- the same start state used during data collection --- so that each
 pick begins in-distribution; the scene, however, is not reset, so previously collected
 items genuinely accumulate in the basket. The retry-on-miss policy re-attempts a
@@ -448,33 +715,43 @@ sequencing layer.
 
 \section{Synthesis}
 \label{sec:results-synthesis}
-Taken together, the results support three claims. First, a compact VLA is
-\emph{deployable} under a hard 12~GB budget and reaches a useful 80\% task-completion
-rate on this task (\refsec{sec:results-headline}). Second, the largest gains came
-from \emph{methodology rather than scale}: the 0\%-to-80\% improvement
+Taken together, the results support four claims. First, a compact VLA is
+\emph{runnable and trainable} under a hard 12~GB budget and completes this task 80\% of
+the time at the object pose it was evaluated on
+(\refsec{sec:results-headline}). Second, the largest gains came from
+\emph{methodology rather than scale}: the 0\%-to-80\% improvement
 (\refsec{sec:results-diagnosis}) followed from diagnosis and from correcting
 observability, data boundaries and the target, not from a larger model; and the
 prior pilot showed metric and data fixes dominating model choice
 (\refsec{sec:results-journey}). Third, the policy is genuinely
-\emph{instruction-following} rather than executing a fixed motion
+\emph{instruction-following} rather than executing one fixed motion
 (\refsec{sec:results-language}), and its behaviour is partly \emph{legible} through
-its own predicted plan (\refsec{sec:results-interpret}). The clear separation
-between a near-solved grasp phase (92.5\%) and a more variable placement phase
-(80\%) localises the remaining difficulty to final-drop precision under a stochastic
-policy --- precisely the regime the evaluation protocol was designed to measure
-honestly.
+its own predicted plan (\refsec{sec:results-interpret}). Fourth, and cutting across
+the others, that instruction-following is implemented by \emph{recall rather than
+perception}: the policy maps each item word to a memorised trajectory and does not
+localise the named object visually (\refsec{sec:results-lookup}). This last finding
+explains what the others leave unexplained --- why performance falls to 58.8\% under a
+\SI{2}{cm} object displacement (\refsec{sec:results-robustness}), and why a
+52-million-parameter policy with no language input at all matches the VLA's
+manipulation quality on a single item (\refsec{sec:results-act}).
 
 Read against the research questions of \refsec{sec:rqs}, the chapter answers each in
-turn. RQ1 (feasibility) is answered affirmatively by the 80\% headline under a strict
-12~GB budget. RQ2 (model versus methodology) is answered by two independent pieces of
-evidence: the pilot, where fixing the metric and the data --- not the model --- moved
-real performance from an apparent 80\% to a real 40\% and then upward; and the
-supermarket task, where the decisive 0\%-to-80\% gain came from observability and data
-fixes rather than scale, and where even checkpoint selection had to be made by task
-success rather than loss. RQ3 (grounding) is answered by the controlled
-instruction-swap test, in which the reach follows the named item across the shelf. RQ4
-(failure structure) is answered by the traced diagnosis, which localised the initial
-failure to the terminal placement and corrected it by targeted changes. That all four
-questions admit clear, evidence-based answers is itself a result: it is a consequence
-of designing the evaluation, from the outset, to make such answers possible rather than
-to maximise a single headline number.
+turn. RQ1 (feasibility) is answered affirmatively but with a stated bound: 80\% at a
+fixed object pose, 58.8\% under the \SI{2}{cm} jitter the training data itself
+contained, under a strict 12~GB budget. RQ2 (model versus methodology) is answered by
+three pieces of evidence, one of them new: the pilot, where fixing the metric and the
+data --- not the model --- moved real performance from an apparent 80\% to a real 40\%
+and then upward; the supermarket task, where the decisive 0\%-to-80\% gain came from
+observability and data fixes rather than scale; and the same-task ACT control, in
+which a model $1/8$ the size matches or exceeds the VLA's manipulation quality, so
+that the VLA's contribution is shown to be item selection rather than motor
+competence. RQ3 (grounding) receives a qualified answer: the instruction is genuinely
+the causal variable governing behaviour, but the mechanism is a learned
+word-to-trajectory association rather than visual localisation, as the displacement
+test establishes across 216 trials without exception. RQ4 (failure structure) is
+answered by the traced diagnosis, which localised the initial failure to the terminal
+placement and corrected it by targeted changes; the displacement and robustness
+results extend that analysis by locating the residual failure mode in perception
+rather than in control. That the evaluation was able to overturn one of its own
+earlier claims is itself the strongest vindication of the methodology-first approach
+this thesis argues for.

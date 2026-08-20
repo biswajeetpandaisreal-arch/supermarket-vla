@@ -5,11 +5,14 @@
 \label{sec:conclusions}
 This thesis asked whether a capable Vision--Language--Action model can be fine-tuned
 and deployed on a single 12~GB consumer GPU to perform reliable, language-driven
-grasping of everyday objects. The answer is yes. Working entirely in the MuJoCo
-simulator, a compact SmolVLA policy was fine-tuned from 208 scripted-expert
+grasping of everyday objects. The answer is a qualified yes. Working entirely in the
+MuJoCo simulator, a compact SmolVLA policy was fine-tuned from 208 scripted-expert
 demonstrations --- by freezing the pretrained vision--language backbone and training
 only the action expert --- to pick a named grocery item from a shelf and place it in
-an onboard basket.
+an onboard basket. It does so reliably under the conditions it was trained on, and
+markedly less reliably as soon as those conditions are perturbed; characterising that
+boundary precisely, rather than reporting only the favourable figure, is among the
+thesis's more useful outcomes.
 
 The main outcomes are:
 \begin{itemize}
@@ -20,16 +23,29 @@ The main outcomes are:
     \item A documented failure analysis that raised placement from 0\% ($n=12$) to 80\% by
     diagnosing near-miss behaviour and correcting observability and
     episode-boundary issues, rather than by scaling the model.
-    \item Direct evidence of genuine language grounding, and a light-weight view of
-    the policy's own predicted action plan.
-    \item The finding --- corroborated by the literature --- that evaluation quality
-    and demonstration variety matter more than model scale in this data and hardware
-    regime.
+    \item Evidence that the policy is genuinely instruction-driven, together with the
+    finding that this conditioning is implemented by \emph{recall rather than
+    perception}: across 216 trials in which items were displaced from their trained
+    positions, the policy reached the trained position every time and the actual
+    position never. A light-weight view of the policy's own predicted action plan
+    accompanies this.
+    \item A measured bound on that behaviour: displacing objects by \SI{2}{cm} --- the
+    same jitter present in the training data --- reduces task completion from 80\% to
+    58.8\% (95\% CI 48--69).
+    \item The finding --- corroborated by the literature and now by a same-task capacity
+    control --- that evaluation quality and demonstration variety matter more than model
+    scale in this data and hardware regime. A 52-million-parameter policy with no
+    language input matches the 450-million-parameter VLA's manipulation quality on the
+    item tested, locating the VLA's contribution in item selection.
 \end{itemize}
 
 Taken together, these show that a rigorously evaluated, compact VLA is a practical
-choice under tight hardware constraints, and that careful methodology is what turns
-an initially failing policy into a working one.
+choice under tight hardware constraints, that careful methodology is what turns an
+initially failing policy into a working one, and --- equally --- that the same
+methodology, applied without flinching to one's own headline claims, is what reveals
+their limits. The evaluation designed in \refChap{chap:methodology} was ultimately
+able to overturn a claim made earlier in this work; that is the strongest argument
+available for building it that way.
 
 More broadly, the thesis offers a template for working under constraint. When the
 largest models are unavailable, progress comes not from waiting for more compute but
