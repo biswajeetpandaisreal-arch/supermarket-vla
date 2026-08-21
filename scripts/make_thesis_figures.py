@@ -91,7 +91,7 @@ def nearmiss():
 def pipeline():
     fig, ax = plt.subplots(figsize=(11, 3.2))
     ax.set_xlim(0, 11); ax.set_ylim(0, 3.2); ax.axis("off")
-    stages = [("Scripted expert", "mink IK\n240 demos", TEAL),
+    stages = [("Scripted expert", "mink IK\n240 collected\n208 train", TEAL),
               ("LeRobot dataset", "3 cams + state\n+ instruction", INK),
               ("Fine-tune SmolVLA", "freeze backbone,\ntrain action head", TEAL),
               ("Closed-loop eval", "success rate,\nWilson CIs", INK)]

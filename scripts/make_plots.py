@@ -90,21 +90,22 @@ def plot_checkpoints():
     # highlight the selected (peak) checkpoint
     ax.scatter([x[best]], [pct[best]], s=260, facecolors="none",
                edgecolors="#2e7d32", linewidths=2.5, zorder=4)
-    ax.annotate(f"selected\n{pct[best]:.0f}%", (x[best], pct[best]),
-                textcoords="offset points", xytext=(0, 18),
+    ax.annotate("selected", (x[best], pct[best]),
+                textcoords="offset points", xytext=(0, 22),
                 ha="center", fontsize=10, color="#2e7d32", fontweight="bold")
-    ax.annotate("over-training\ndip", (x[-1], pct[-1]),
-                textcoords="offset points", xytext=(6, -34),
-                ha="center", fontsize=9, color="#c62828",
-                arrowprops=dict(arrowstyle="->", color="#c62828", lw=1.3))
-    for xi, p in zip(x, pct):
-        ax.text(xi, p - 6.5, f"{p:.0f}%", ha="center", va="top", fontsize=10)
+    # Value labels sit clear of the lower CI cap so they never overlap the whiskers.
+    for xi, p, lo in zip(x, pct, los):
+        ax.text(xi, p - lo - 2.0, f"{p:.0f}%", ha="center", va="top",
+                fontsize=10, color="#37474f")
     ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=11)
     ax.set_xlabel("Training checkpoint (steps)", fontsize=11)
     ax.set_ylabel("Overall task completion (%)", fontsize=11)
     ax.set_ylim(50, 95)
-    ax.set_title("Checkpoint selected by task success, not loss (n=80 each)\nerror bars: Wilson 95% CI",
-                 fontsize=12)
+    # No claim of over-training: paired McNemar tests find no significant difference
+    # between any pair of checkpoints on task completion (all p >= 0.19).
+    ax.set_title("Checkpoint selection by closed-loop task success (n=80 each)\n"
+                 "error bars: Wilson 95% CI — differences between checkpoints are not significant",
+                 fontsize=11.5)
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(axis="y", ls=":", color="#cfd8dc", zorder=0)
     fig.tight_layout()

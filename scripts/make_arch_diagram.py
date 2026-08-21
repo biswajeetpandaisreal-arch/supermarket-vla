@@ -90,7 +90,7 @@ ax.add_patch(FancyBboxPatch((0.3, 0.30), 0.35, 0.30, boxstyle="round,pad=0.02",
 ax.text(0.78, 0.45, "frozen (pretrained perception)", va="center", fontsize=9.5, color="#455a64")
 ax.add_patch(FancyBboxPatch((5.1, 0.30), 0.35, 0.30, boxstyle="round,pad=0.02",
              fc=TRAIN_C, ec=TRAIN_E, lw=2))
-ax.text(5.58, 0.45, "trained on our 240 demos (fits 12 GB)", va="center", fontsize=9.5, color="#455a64")
+ax.text(5.58, 0.45, "trained on our 208 train demos (fits 12 GB)", va="center", fontsize=9.5, color="#455a64")
 
 ax.set_title("SmolVLA architecture:  reads + looks  →  plans actions",
              fontsize=14, fontweight="bold", pad=12)
