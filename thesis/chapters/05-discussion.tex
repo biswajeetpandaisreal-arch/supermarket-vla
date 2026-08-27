@@ -83,13 +83,10 @@ motion first.
 \label{sec:disc-limits}
 This work has clear and honestly stated limitations.
 
-\paragraph{Weak item.} The milk carton is the weakest item (70\% grasp, 60\%
-placement). It sits at the far edge of the reliable grasp zone and has a less
-forgiving geometry. It placed more reliably at earlier checkpoints, so the weakness
-is recoverable with milk-specific grasp tuning or additional milk demonstrations
-rather than being fundamental.
+\subsection{Weak item.} The milk carton is the weakest item (70\% grasp, 60\%
+placement). It is the tallest item, so its peak lift clears the grasp threshold by the smallest margin of any item, and the learned reach exhibits a consistent inward bias (Sec. 4.3). It is not the most laterally extended target — the water bottle sits 8 cm further out and grasps at 100 \%. It placed more reliably at earlier checkpoints, so the weakness is recoverable with milk-specific grasp tuning or additional milk demonstrations rather than being fundamental.
 
-\paragraph{Multi-item lists.} Single-item picks are reliable, but whole-list
+\subsection{Multi-item lists.} Single-item picks are reliable, but whole-list
 completion is not: 45\% for two items and 30\% for three
 (\refsec{sec:results-orchestrator}). An accumulating basket was previously assumed to
 be the cause, on the reasoning that the policy never saw a non-empty basket in
@@ -99,9 +96,9 @@ identified in \refsec{sec:results-lookup} --- earlier picks nudge the remaining 
 and a policy that reaches a recalled position rather than a perceived one fails once
 its target has moved.
 
-\paragraph{Reliance on fixed object positions.} The policy does not localise the named
+\subsection{Reliance on fixed object positions.} The policy does not localise the named
 item; it recalls where that item was demonstrated (\refsec{sec:results-lookup}). This
-is the root cause behind several entries in this list, including the \SI{2}{cm}
+is the root cause behind several entries in this list, including the \SI{2.5}{cm}
 robustness result and, most likely, the multi-item degradation above. It is a data
 limitation rather than a model limitation: with every item at a fixed position in all
 208 episodes, a word-to-trajectory association fits the demonstrations exactly and is
@@ -111,25 +108,25 @@ randomised over a substantial range, so that the recalled-position strategy no l
 fits the data --- is the single highest-value next experiment this work suggests, and is
 developed in \refsec{sec:disc-ideal}.
 
-\paragraph{Excluded item.} The cereal box is excluded from training because its
+\subsection{Excluded item.} The cereal box is excluded from training because its
 wide face slips in the two-finger gripper during transport; a wider grasp or a
 different grip strategy would be required.
 
-\paragraph{Simulation only.} All results are in simulation; no sim-to-real transfer
+\subsection{Simulation only.} All results are in simulation; no sim-to-real transfer
 is claimed. The pipeline is deliberately real-robot-shaped, however --- it uses the
 LeRobot framework and accurate hardware models (UR10e, Robotiq) --- so the same
 code path could fine-tune on real demonstrations.
 
-\paragraph{Stochastic policy.} The flow-matching action expert samples actions
+\subsection{Stochastic policy.} The flow-matching action expert samples actions
 stochastically, so there is run-to-run variance, especially on the weak items. This
 is exactly why success is reported over 320 trials with confidence intervals rather
 than from single runs.
 
-\paragraph{Checkpoint selection.} Checkpoints are selected by closed-loop success on
+\subsection{Checkpoint selection.} Checkpoints are selected by closed-loop success on
 evaluation episodes that use fresh seeds and paraphrases but the same item set; a
 fully locked, never-used-for-selection test set would be a cleaner final estimate.
 
-\paragraph{Inference cost and control rate.} Although the frozen-backbone strategy
+\subsection{Inference cost and control rate.} Although the frozen-backbone strategy
 makes \emph{training} inexpensive, \emph{inference} still runs the full
 vision--language backbone every re-planning step, which bounds the achievable control
 rate on modest hardware. This is acceptable for the quasi-static manipulation task
@@ -141,7 +138,7 @@ need run at high rate. The action-chunk horizon is a further lever: executing mo
 each predicted chunk before re-planning amortises the backbone cost but reduces
 reactivity, the non-monotonic trade-off noted in \refsec{sec:bg-eval}.
 
-\paragraph{Scope of the instruction set.} The language conditioning is exercised over
+\subsection{Scope of the instruction set.} The language conditioning is exercised over
 six paraphrase templates spanning four items --- 24 distinct instructions; it is not
 tested on open-vocabulary requests, unseen object names, compositional instructions
 (``the small red can''), or referring expressions that require disambiguation. The
@@ -173,7 +170,7 @@ which yielded 0/20 --- and why generalisation of the present policy is better as
 on held-out variations of its own task (unseen positions, novel paraphrases) than on
 a foreign benchmark. Cross-embodiment transfer is a distinct research problem,
 addressed in the literature by co-training across embodiments
-\cite{black2025pi05}, and is out of scope here.
+\parencite{black2025pi05}, and is out of scope here.
 
 \section{Toward a real-world system without constraints}
 \label{sec:disc-ideal}
@@ -189,12 +186,12 @@ Beyond the architecture, five changes would most improve a real deployment; each
 motivated directly by a limitation or observation of the present work. The first is
 both the cheapest and, on the evidence of \refChap{chap:results}, the most valuable.
 
-\paragraph{Positional randomisation in the demonstrations.} The single most
+\subsection{Positional randomisation in the demonstrations.} The single most
 consequential change would require no additional hardware, no larger model and no new
 algorithm: re-collect the demonstrations with each item's position randomised over a
 substantial range rather than fixed. \refsec{sec:results-lookup} shows that the policy
 currently maps each item word to a memorised trajectory, and
-\refsec{sec:results-robustness} shows the cost of that --- a \SI{2}{cm} displacement
+\refsec{sec:results-robustness} shows the cost of that --- a \SI{2.5}{cm} displacement
 removes more than twenty points of task completion. Neither is a failing of the model:
 with every item at a fixed position in all 208 episodes, recall fits the training data
 exactly, so the dataset never made visual localisation necessary. Randomising positions
@@ -210,7 +207,7 @@ randomisation produces genuine localisation, the limitation is confirmed as one 
 data; if it does not, the limitation lies deeper, in the capacity of a frozen backbone
 with a small action expert to support visual search.
 
-\paragraph{Whole-body control.} Controlling the base and arm as a single system,
+\subsection{Whole-body control.} Controlling the base and arm as a single system,
 rather than parking the base and then moving the arm, would let the robot reach while
 repositioning --- extending its effective workspace, reaching around obstacles, and
 approaching items from a more favourable base pose. The parked-base assumption made
@@ -220,7 +217,7 @@ improving it. A whole-body policy would fold base positioning into the same
 optimisation as the reach, allowing a poor approach angle to be corrected by moving
 rather than by stretching.
 
-\paragraph{Tactile and force sensing.} The clearest capability gap in this thesis is
+\subsection{Tactile and force sensing.} The clearest capability gap in this thesis is
 grasping: the milk carton grasps at 70\% and the cereal box is excluded entirely for
 slipping. These are difficult to solve from vision alone, because whether the fingers
 have secured an object --- and whether it is slipping during transport --- is a contact
@@ -228,16 +225,14 @@ property, not a visual one. Tactile or force sensing on the gripper would provid
 exactly this signal, enabling closed-loop grip adjustment and slip detection, and is
 the most direct route to lifting the weak items and re-admitting cereal.
 
-\paragraph{Diverse, co-trained data.} A four-item, single-scene dataset cannot
+\subsection{Diverse, co-trained data.} A four-item, single-scene dataset cannot
 support the generalisation a service robot requires. The most effective route,
 following $\pi_{0.5}$ \parencite{black2025pi05}, is to co-train on a deliberately
 heterogeneous mixture --- teleoperation across many stores and items, domain-randomised
 simulation, and even human video --- so that the policy learns invariances rather than
-memorising a fixed inventory. This would also address the multi-item distribution
-shift documented in \refsec{sec:disc-limits}, since varied basket contents would
-appear naturally in such data.
+memorising a fixed inventory. It would also broaden the scene distribution generally, though note that basket occupancy was measured not to be the cause of the multi-item degradation (Sec. 4.11).
 
-\paragraph{Imitation followed by reinforcement.} Behaviour cloning caps a policy at
+\subsection{Imitation followed by reinforcement.} Behaviour cloning caps a policy at
 the quality of its demonstrations; it can, at best, imitate the scripted expert.
 Reinforcement-learning fine-tuning on top of the imitation-pretrained policy ---
 safely, in simulation --- could discover behaviours the expert never demonstrated, in
@@ -260,7 +255,7 @@ success fine-tuning the same SmolVLA checkpoint on real SO-101 hardware from aro
 equated, however: Kiviranta's is obtained on physical hardware, where object pose,
 lighting and contact vary from trial to trial, whereas the figure here is measured in
 simulation at a fixed object pose, and falls to 58.8\% once object position is allowed
-to vary by \SI{2}{cm} (\refsec{sec:results-robustness}). The coincidence of the two
+to vary by \SI{2.5}{cm} (\refsec{sec:results-robustness}). The coincidence of the two
 numbers is therefore a coincidence of regime, not of difficulty. The comparison is
 nonetheless consistent with that work's caution that SmolVLA's headline numbers are
 easy to overstate without careful evaluation --- a caution this thesis addresses
@@ -292,13 +287,13 @@ useful counterweight.
 It is worth stating explicitly the threats to the validity of the conclusions and
 how each is mitigated or bounded.
 
-\paragraph{Construct validity.} Task completion is defined as the item coming to
+\subsection{Construct validity.} Task completion is defined as the item coming to
 rest inside the basket footprint and low, rather than merely near the basket. This
 was a deliberate correction of the proxy metric that inflated results in the pilot
 study (\refsec{sec:results-journey}), and it ensures the headline number measures
 the intended construct --- successful placement --- rather than a correlate of it.
 
-\paragraph{Internal validity.} The 0\%-to-80\% improvement is attributed to three
+\subsection{Internal validity.} The 0\%-to-80\% improvement is attributed to three
 specific changes made together (clean episode boundaries, a basket camera and a
 wider tote), so their individual contributions are not isolated by an ablation. The
 changes were, however, motivated by a concrete traced failure, and each targets a
@@ -306,7 +301,7 @@ distinct facet of that failure (what the policy is taught, what it can see, and 
 much slack the target allows). A controlled ablation is identified as useful further
 work.
 
-\paragraph{External validity.} All results are in a single simulated environment
+\subsection{External validity.} All results are in a single simulated environment
 with four items and a parked base; they should not be read as a claim about real
 hardware, other objects, or full mobile manipulation. A further and more specific
 bound applies: the headline evaluation places each item at a fixed pose, so it
@@ -318,7 +313,7 @@ unsupported. The intent is narrower --- to characterise what a compact VLA can d
 a fixed hardware budget on a controlled task --- and the limitations of
 \refsec{sec:disc-limits} bound the generalisation accordingly.
 
-\paragraph{Statistical conclusion validity.} Because the flow-matching policy is
+\subsection{Statistical conclusion validity.} Because the flow-matching policy is
 stochastic, single rollouts are uninformative; success is therefore reported over
 320 trials with Wilson intervals, and differences whose intervals overlap (for
 example the 5k and 10k checkpoints) are not treated as real. The intervals are wide

@@ -51,39 +51,14 @@
 
 % ---- Abstract (<= 300 words) -------------------------------------------------
 \begin{abstract}
-Vision--Language--Action (VLA) models promise generalist robot control by
-extending a pretrained vision--language backbone to output robot actions,
-letting a single network handle perception, language understanding and
-manipulation together. However, state-of-the-art VLAs are large, raising the
-question of whether a capable VLA can be fine-tuned and deployed on a single
-consumer GPU. This thesis investigates that question through a language-driven
-supermarket manipulation task, built in the MuJoCo physics simulator, in which
-a UR10e arm on a stationary Omron mobile base must pick one of four named grocery
-items from a shelf and place it in an onboard basket. A preliminary study on the RoboCasa kitchen
-benchmark found that small, deployable models (SmolVLA and ACT) failed even after
-fine-tuning on RoboCasa demonstrations, motivating a controlled task and a
-methodology-first approach. The
-compact SmolVLA model is fine-tuned on 208 scripted-expert demonstrations by
-freezing its pretrained vision--language backbone and training only the action
-expert, which uses approximately 3~GB of a 12~GB GPU. For the selected checkpoint
-the policy achieves an 80\% task-completion rate (95\% Wilson confidence interval
-70--87, $n=80$) and 92.5\% grasp success, drawn from 320 closed-loop rollouts across
-four checkpoints, with the deployed checkpoint selected by task success rather than
-training loss. A documented failure analysis turned an initial 0\% placement rate
-($n=12$) into 80\% by diagnosing near-miss behaviour and addressing observability and
-episode-boundary issues rather than blindly retraining. Controlled interventions then
-characterise what the policy has actually learned. It is genuinely
-language-conditioned --- changing only the named item changes where the arm reaches ---
-but displacing items from their trained positions reveals that this conditioning is
-recall rather than perception: across 216 such trials the policy reached the trained
-position every time and the item's actual position never. Consistent with this,
-applying the same \SI{2}{cm} jitter used to collect the demonstrations reduces task
-completion to 58.8\% (95\% CI 48--69), and a 52-million-parameter policy with no
-language input at all matches the VLA's manipulation quality on the item tested. The
-work shows that careful evaluation and data quality matter more than model scale at
-this regime, that the VLA's contribution here is item selection rather than motor
-competence, and that a compact VLA is deployable \emph{in simulation} under tight
-hardware constraints provided its operating conditions are stated.
+Vision–Language–Action (VLA) models promise generalist robot control by extending a pretrained vision–language backbone to output robot actions, letting a single network handle perception, language understanding and manipulation together. But state-of-the-art VLAs are large, and it is not obvious that a capable one can be fine-tuned and deployed on a single consumer GPU — or that "capable" means what it appears to. This thesis investigates both questions through a language-driven supermarket task, built in the MuJoCo physics simulator, in which a mobile manipulator must pick a named grocery item from a shelf and place it in a basket.
+
+A preliminary study on the RoboCasa kitchen benchmark found that small, deployable models failed outright, even after fine-tuning — a result that could easily have ended the project. Instead it motivated a deliberate change of strategy: rather than chase a harder benchmark with a bigger model, build a controlled task and get the methodology right first. The compact SmolVLA model is fine-tuned by freezing its pretrained vision–language backbone and training only the action expert, comfortably within a 12 GB budget, on a modest set of scripted-expert demonstrations. The resulting policy is, by the usual measure, a success: it completes the task reliably, and a documented failure analysis shows how an initial 0\% placement rate was traced to a specific, fixable defect rather than a fundamental one.
+
+The more interesting story begins after that success is established. A series of controlled interventions probes what the policy has actually learned, and the answer is not the one the headline number suggests. The policy is genuinely language-conditioned — naming a different item sends the arm somewhere different — but displacing the items from their trained positions reveals that this conditioning is recall, not perception: the policy reaches for where an item used to be, never for where it actually is. A small non-language policy, trained on the same data, matches its manipulation quality on the item tested. The apparent intelligence of the system, in other words, is doing less work than it appears to.
+
+Read together, these results argue that at this scale of data and hardware, the discipline of evaluation — testing a model past the point where it looks like it works — matters more than the scale of the model itself, and that a compact VLA is a genuinely practical choice for constrained deployment provided its operating conditions, and its limits, are stated honestly rather than assumed.
+
 \end{abstract}
 
 \begin{keywords}
@@ -147,8 +122,11 @@ model checkpoints made this work possible.
 
 \chapter{Ethical Approval Letter}\label{app:EthicalApproval}
 % Replace Letter.pdf with your own CURES approval letter.
-\includegraphics[width=\textwidth, trim={2cm 10cm 2cm 1.25cm}, clip,
-    alt={The ethical approval letter from the CURES system.}]{Letter.pdf}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth, trim={1cm 12cm 1cm 0.5cm}, clip,
+        alt={The ethical approval letter from the CURES system.}]{Letter.pdf}
+\end{figure}
 
 \chapter{Implementation Details}\label{app:Implementation}
 \input{chapters/appendix-implementation}

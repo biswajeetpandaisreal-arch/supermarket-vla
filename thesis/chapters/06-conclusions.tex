@@ -29,7 +29,7 @@ The main outcomes are:
     positions, the policy reached the trained position every time and the actual
     position never. A light-weight view of the policy's own predicted action plan
     accompanies this.
-    \item A measured bound on that behaviour: displacing objects by \SI{2}{cm} --- the
+    \item A measured bound on that behaviour: displacing objects by \SI{2.5}{cm} --- the
     same jitter present in the training data --- reduces task completion from 80\% to
     58.8\% (95\% CI 48--69).
     \item The finding --- corroborated by the literature and now by a same-task capacity
@@ -77,8 +77,6 @@ supermarket service robot. The clearest next steps are:
     \item \textbf{Closing the multi-item gap.} Fine-tune on demonstrations with
     varied, non-empty basket contents to remove the distribution shift that reduces
     multi-item reliability (\refsec{sec:disc-limits}).
-    \item \textbf{Strengthening weak items and adding cereal.} Item-specific grasp
-    tuning for the milk carton, and a wider or alternative grip for the cereal box.
     \item \textbf{Toward hardware.} Domain randomisation and fine-tuning on real
     demonstrations (for example on a low-cost arm) to test sim-to-real transfer,
     which is out of scope for the present simulation study.
@@ -95,7 +93,7 @@ manipulation, executing a long 50-step action chunk before re-planning is benefi
 because it yields smooth motion in a static scene; in navigation, committing to a long
 horizon in a changing scene is dangerous, so a much shorter execution horizon (or
 real-time re-planning) is required --- an instance of the non-monotonic
-horizon effect established in the literature \cite{wang2026vlalimits}. The methodology
+horizon effect established in the literature \parencite{wang2026vlalimits}. The methodology
 would nonetheless mirror the manipulation pipeline: a scripted \emph{reactive
 navigator} (for example a potential-field or sampling-based local planner that avoids
 moving obstacles while heading to a goal shelf) would generate demonstrations of

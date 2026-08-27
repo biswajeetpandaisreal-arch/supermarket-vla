@@ -1,132 +1,549 @@
-%% references.bib — verify details (DOIs, page numbers, exact venues) before submission.
+%% references.bib — MSc thesis, Biswajeet Panda
+%%
+%% ===========================================================================
+%% HOUSE STYLE (applied consistently to every entry below)
+%% ---------------------------------------------------------------------------
+%% Rendering is Cranfield Numbered (biblatex style=numeric-comp, sorting=none),
+%% so entries appear in order of first citation. To keep the printed reference
+%% list uniform, every entry follows the same rules:
+%%
+%%  1. ENTRY TYPE follows the *publication venue*, not the file format:
+%%       @inproceedings  peer-reviewed conference paper (CoRL, RSS, ICRA, IROS,
+%%                       NeurIPS, ICLR, ICML, CVPR, AISTATS)
+%%       @article        peer-reviewed journal paper (T-RO, RA-L, IJRR, PNAS,
+%%                       Nature Mach. Intell., JASA)
+%%       @misc           preprint with no peer-reviewed venue, software,
+%%                       model checkpoint, or technical report
+%%       @thesis         student dissertation (with an explicit `type` field)
+%%
+%%  2. AUTHORS are given in full "Surname, Forename" form. Where the author list
+%%     is a very large collaboration, it is truncated with `and others`, which
+%%     biblatex renders as "et al." — this is used sparingly and only for
+%%     collaborations, never to shorten a list of four or five named authors.
+%%
+%%  3. VENUE NAMES are given in full with the community acronym in parentheses,
+%%     e.g. "Conference on Robot Learning (CoRL)". Ordinal numbers ("7th") and
+%%     locations are omitted throughout so that every venue reads the same way.
+%%
+%%  4. arXiv IDENTIFIERS appear ONLY on preprint-only entries (@misc), and use
+%%     the biblatex-native fields `eprint`, `eprinttype` and `eprintclass`. They
+%%     are NEVER placed in a `journal` field, which would make a preprint render
+%%     as though it were a journal article. A paper that has since appeared at a
+%%     peer-reviewed venue is cited by that venue alone, so that published and
+%%     unpublished sources are visibly distinguished in the reference list.
+%%
+%%  5. `note` carries bibliographic information only (edition, erratum, "Model
+%%     checkpoint: ..."). Author affiliations are NOT recorded — they are not
+%%     part of a reference and previously made the list read inconsistently.
+%%
+%%  6. SOFTWARE and MODELS use @misc with `howpublished` set to one of
+%%     {Software}, {Model checkpoint} or {Technical report}, plus `url` and
+%%     `urldate`.
+%%
+%%  7. TITLE CASE is preserved by brace-protecting proper nouns and system
+%%     names only, e.g. {{RT-2}}, {{MuJoCo}}, {{SmolVLA}}.
+%%
+%%  8. PAGE RANGES are given for journal articles and for conference papers with
+%%     stable pagination. Proceedings published through PMLR (CoRL, AISTATS,
+%%     ICML) and open-review venues (ICLR, RSS) are cited without pages, as is
+%%     conventional for those series.
+%%
+%% ---------------------------------------------------------------------------
+%% BEFORE SUBMISSION: verify each entry against the publisher record (venue,
+%% year, page range, DOI). DOIs have deliberately not been guessed; add them
+%% from the publisher page if the programme handbook requires them.
+%% ===========================================================================
+
+
+%% ---------------------------------------------------------------------------
+%% Vision--Language--Action models
+%% ---------------------------------------------------------------------------
+
+@inproceedings{brohan2023rt1,
+  title      = {{RT-1}: Robotics Transformer for Real-World Control at Scale},
+  author     = {Brohan, Anthony and Brown, Noah and Carbajal, Justice and Chebotar, Yevgen and Dabis, Joseph and Finn, Chelsea and Gopalakrishnan, Keerthana and Hausman, Karol and Herzog, Alex and Hsu, Jasmine and others},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2023}
+}
 
 @inproceedings{zitkovich2023rt2,
-  title     = {{RT-2}: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control},
-  author    = {Zitkovich, Brianna and Yu, Tianhe and Xu, Sichun and Xu, Peng and Xiao, Ted and Xia, Fei and others},
-  booktitle = {Proceedings of the 7th Conference on Robot Learning (CoRL)},
-  year      = {2023},
-  note      = {Google DeepMind}
+  title      = {{RT-2}: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control},
+  author     = {Zitkovich, Brianna and Yu, Tianhe and Xu, Sichun and Xu, Peng and Xiao, Ted and Xia, Fei and Wu, Jialin and Wohlhart, Paul and Welker, Stefan and Wahid, Ayzaan and others},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2023}
 }
 
-@article{black2025pi05,
-  title   = {{$\pi_{0.5}$}: A Vision-Language-Action Model with Open-World Generalization},
-  author  = {Black, Kevin and Brown, Noah and Darpinian, James and Dhabalia, Karan and Esmail, Danny and others},
-  journal = {arXiv preprint arXiv:2504.16054},
-  year    = {2025},
-  note    = {Physical Intelligence}
+@inproceedings{padalkar2024openx,
+  title      = {Open {X}-Embodiment: Robotic Learning Datasets and {RT-X} Models},
+  author     = {Padalkar, Abhishek and Pooley, Acorn and Jain, Ajinkya and Bewley, Alex and Herzog, Alex and Irpan, Alex and Khazatsky, Alexander and Rai, Anant and Singh, Anikait and Brohan, Anthony and others},
+  booktitle  = {IEEE International Conference on Robotics and Automation (ICRA)},
+  year       = {2024}
 }
 
-@mastersthesis{kiviranta2025smolvla,
-  title  = {Deployment of a Small Vision-Language-Action Model for Low-Cost Manipulation: {SmolVLA} finetuned for {SO-101}},
-  author = {Kiviranta, Arttu},
-  school = {Tampere University},
-  year   = {2025},
-  type   = {Bachelor's thesis}
+@inproceedings{ghosh2024octo,
+  title      = {Octo: An Open-Source Generalist Robot Policy},
+  author     = {Ghosh, Dibya and Walke, Homer and Pertsch, Karl and Black, Kevin and Mees, Oier and Dasari, Sudeep and Hejna, Joey and Kreiman, Tobias and Xu, Charles and Luo, Jianlan and others},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2024}
 }
 
-@article{sapkota2026vla,
-  title   = {Vision-Language-Action ({VLA}) Models: Concepts, Progress, Applications and Challenges},
-  author  = {Sapkota, Ranjan and Cao, Yang and Roumeliotis, Konstantinos I. and Karkee, Manoj},
-  journal = {arXiv preprint arXiv:2505.04769},
-  year    = {2026},
-  note    = {v2}
+@inproceedings{kim2024openvla,
+  title      = {{OpenVLA}: An Open-Source Vision-Language-Action Model},
+  author     = {Kim, Moo Jin and Pertsch, Karl and Karamcheti, Siddharth and Xiao, Ted and Balakrishna, Ashwin and Nair, Suraj and Rafailov, Rafael and Foster, Ethan and Lam, Grace and Sanketi, Pannag and Vuong, Quan and Kollar, Thomas and Burchfiel, Benjamin and Tedrake, Russ and Sadigh, Dorsa and Levine, Sergey and Liang, Percy and Finn, Chelsea},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2024}
 }
 
-@article{wang2026vlalimits,
-  title   = {{VLA} Knows Its Limits},
-  author  = {Wang, Yi and Zhang, Yifan and Yan, Jiaxin and Kompella, Ramana and Liu, Bo},
-  journal = {arXiv preprint},
-  year    = {2026},
-  note    = {University of Illinois Chicago / Cisco Research}
+@misc{black2024pi0,
+  title      = {{$\pi_0$}: A Vision-Language-Action Flow Model for General Robot Control},
+  author     = {Black, Kevin and Brown, Noah and Driess, Danny and Esmail, Adnan and Equi, Michael and Finn, Chelsea and Fusai, Niccolo and Groom, Lachy and Hausman, Karol and Ichter, Brian and others},
+  year       = {2024},
+  eprint     = {2410.24164},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
 }
 
-@article{xiang2026posttraining,
-  title   = {Parallels Between {VLA} Model Post-Training and Human Motor Learning: Progress, Challenges, and Trends},
-  author  = {Xiang, Tian and Jin, Hao and Zhou, Wei and Gui, Ming and Xie, Lei and others},
-  journal = {arXiv preprint arXiv:2506.20966},
-  year    = {2026},
-  note    = {Institute of Automation, Chinese Academy of Sciences}
-}
-
-@inproceedings{li2025qchunking,
-  title     = {Reinforcement Learning with Action Chunking},
-  author    = {Li, Qiyang and Zhou, Zhiyuan and Levine, Sergey},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2025},
-  note      = {UC Berkeley}
-}
-
-@inproceedings{bharadhwaj2024roboagent,
-  title     = {{RoboAgent}: Generalization and Efficiency in Robot Manipulation via Semantic Augmentations and Action Chunking},
-  author    = {Bharadhwaj, Homanga and Vakil, Jay and Sharma, Mohit and Gupta, Abhinav and Tulsiani, Shubham and Kumar, Vikash},
-  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
-  year      = {2024},
-  note      = {CMU / Meta AI}
-}
-
-@article{nasiriany2024robocasa,
-  title   = {{RoboCasa}: Large-Scale Simulation of Everyday Tasks for Generalist Robots},
-  author  = {Nasiriany, Soroush and Maddukuri, Abhiram and Zhang, Lance and Parikh, Adeet and Lo, Aaron and Joshi, Abhishek and Mandlekar, Ajay and Zhu, Yuke},
-  journal = {arXiv preprint arXiv:2406.02523},
-  year    = {2024},
-  note    = {UT Austin / NVIDIA}
-}
-
-@inproceedings{nasiriany2026robocasa365,
-  title     = {{RoboCasa365}: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots},
-  author    = {Nasiriany, Soroush and Maddukuri, Abhiram and Zhu, Yuke},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2026},
-  note      = {UT Austin / NVIDIA}
-}
-
-@inproceedings{zhao2023act,
-  title     = {Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},
-  author    = {Zhao, Tony Z. and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
-  booktitle = {Robotics: Science and Systems (RSS)},
-  year      = {2023},
-  note      = {Introduces ACT (Action Chunking Transformer)}
+@misc{black2025pi05,
+  title      = {{$\pi_{0.5}$}: A Vision-Language-Action Model with Open-World Generalization},
+  author     = {Black, Kevin and Brown, Noah and Darpinian, James and Dhabalia, Karan and Driess, Danny and Esmail, Adnan and Equi, Michael and Finn, Chelsea and Fusai, Niccolo and Ghosh, Dibya and others},
+  year       = {2025},
+  eprint     = {2504.16054},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
 }
 
 @misc{shukor2025smolvla,
-  title         = {{SmolVLA}: A Vision-Language-Action Model for Affordable and Efficient Robotics},
-  author        = {Shukor, Mustafa and Aubakirova, Dana and Capuano, Francesco and Kooijmans, Pepijn and Palma, Steven and Zouitine, Adil and Aractingi, Michel and Pascal, Caroline and Russi, Martino and Marafioti, Andres and Alibert, Simon and Cord, Matthieu and Wolf, Thomas and Cadene, Remi},
-  year          = {2025},
-  eprint        = {2506.01844},
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.RO},
-  note          = {Model checkpoint: \url{https://huggingface.co/lerobot/smolvla_base}}
+  title      = {{SmolVLA}: A Vision-Language-Action Model for Affordable and Efficient Robotics},
+  author     = {Shukor, Mustafa and Aubakirova, Dana and Capuano, Francesco and Kooijmans, Pepijn and Palma, Steven and Zouitine, Adil and Aractingi, Michel and Pascal, Caroline and Russi, Martino and Marafioti, Andres and Alibert, Simon and Cord, Matthieu and Wolf, Thomas and Cadene, Remi},
+  year       = {2025},
+  eprint     = {2506.01844},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO},
+  note       = {Model checkpoint: \url{https://huggingface.co/lerobot/smolvla_base}}
 }
 
-@article{bicchi2000grasping,
-  title   = {Robotic Grasping and Contact: A Review},
-  author  = {Bicchi, Antonio and Kumar, Vijay},
-  journal = {Proceedings of the IEEE International Conference on Robotics and Automation (ICRA)},
-  pages   = {348--353},
-  year    = {2000}
+@article{wen2025tinyvla,
+  title   = {{TinyVLA}: Towards Fast, Data-Efficient Vision-Language-Action Models for Robotic Manipulation},
+  author  = {Wen, Junjie and Zhu, Yichen and Li, Jinming and Zhu, Minjie and Tang, Zhibin and Wu, Kun and Xu, Zhiyuan and Liu, Ning and Cheng, Ran and Shen, Chaomin and Peng, Yaxin and Feng, Feifei and Tang, Jian},
+  journal = {IEEE Robotics and Automation Letters (RA-L)},
+  year    = {2025}
 }
 
-@inproceedings{mahler2017dexnet,
-  title     = {Dex-Net 2.0: Deep Learning to Plan Robust Grasps with Synthetic Point Clouds and Analytic Grasp Metrics},
-  author    = {Mahler, Jeffrey and Liang, Jacky and Niyaz, Sherdil and Laskey, Michael and Doan, Richard and Liu, Xinyu and Aparicio Ojea, Juan and Goldberg, Ken},
-  booktitle = {Robotics: Science and Systems (RSS)},
-  year      = {2017}
+@misc{kim2025oft,
+  title      = {Fine-Tuning Vision-Language-Action Models: Optimizing Speed and Success},
+  author     = {Kim, Moo Jin and Finn, Chelsea and Liang, Percy},
+  year       = {2025},
+  eprint     = {2502.19645},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
 }
 
-@inproceedings{ross2011dagger,
-  title     = {A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning},
-  author    = {Ross, St{\'e}phane and Gordon, Geoffrey J. and Bagnell, J. Andrew},
-  booktitle = {Proceedings of the 14th International Conference on Artificial Intelligence and Statistics (AISTATS)},
-  pages     = {627--635},
-  year      = {2011}
+@misc{nvidia2025gr00t,
+  title        = {{NVIDIA Isaac GR00T N1}: An Open Foundation Model for Generalist Humanoid Robots},
+  author       = {{NVIDIA}},
+  year         = {2025},
+  howpublished = {Technical report},
+  url          = {https://developer.nvidia.com/isaac/gr00t},
+  urldate      = {2026-08-01},
+  note         = {Referred to in this thesis as {GR00T~N1.x}}
 }
+
+@misc{deepmind2025gemini,
+  title        = {{Gemini Robotics}: Bringing {AI} into the Physical World},
+  author       = {{Google DeepMind}},
+  year         = {2025},
+  howpublished = {Technical report},
+  eprint       = {2503.20020},
+  eprinttype   = {arXiv},
+  eprintclass  = {cs.RO}
+}
+
+@misc{sapkota2026vla,
+  title      = {Vision-Language-Action ({VLA}) Models: Concepts, Progress, Applications and Challenges},
+  author     = {Sapkota, Ranjan and Cao, Yang and Roumeliotis, Konstantinos I. and Karkee, Manoj},
+  year       = {2026},
+  eprint     = {2505.04769},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO},
+  note       = {Version 2}
+}
+
+@misc{wang2026vlalimits,
+  title      = {{VLA} Knows Its Limits},
+  author     = {Wang, Haoxuan and Zhang, Gengyu and Yan, Yan and Kompella, Ramana Rao and Liu, Gaowen},
+  year       = {2026},
+  eprint     = {2602.21445},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
+}
+
+@misc{xiang2026posttraining,
+  title      = {Parallels Between {VLA} Model Post-Training and Human Motor Learning: Progress, Challenges, and Trends},
+  author     = {Xiang, Tian and Jin, Hao and Zhou, Wei and Gui, Ming and Xie, Lei and others},
+  year       = {2026},
+  eprint     = {2506.20966},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Imitation learning, action chunking and generative action models
+%% ---------------------------------------------------------------------------
 
 @inproceedings{pomerleau1988alvinn,
   title     = {{ALVINN}: An Autonomous Land Vehicle in a Neural Network},
   author    = {Pomerleau, Dean A.},
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
   volume    = {1},
+  pages     = {305--313},
   year      = {1988}
+}
+
+@inproceedings{ross2011dagger,
+  title     = {A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning},
+  author    = {Ross, St{\'e}phane and Gordon, Geoffrey J. and Bagnell, J. Andrew},
+  booktitle = {International Conference on Artificial Intelligence and Statistics (AISTATS)},
+  year      = {2011}
+}
+
+@inproceedings{kelly2019hgdagger,
+  title     = {{HG-DAgger}: Interactive Imitation Learning with Human Experts},
+  author    = {Kelly, Michael and Sidrane, Chelsea and Driggs-Campbell, Katherine and Kochenderfer, Mykel J.},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {8077--8083},
+  year      = {2019}
+}
+
+@inproceedings{zhao2023act,
+  title      = {Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},
+  author     = {Zhao, Tony Z. and Kumar, Vikash and Levine, Sergey and Finn, Chelsea},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2023},
+  note       = {Introduces the Action Chunking Transformer (ACT)}
+}
+
+@inproceedings{chi2023diffusionpolicy,
+  title      = {Diffusion Policy: Visuomotor Policy Learning via Action Diffusion},
+  author     = {Chi, Cheng and Feng, Siyuan and Du, Yilun and Xu, Zhenjia and Cousineau, Eric and Burchfiel, Benjamin and Song, Shuran},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2023}
+}
+
+@inproceedings{lipman2023flowmatching,
+  title      = {Flow Matching for Generative Modeling},
+  author     = {Lipman, Yaron and Chen, Ricky T. Q. and Ben-Hamu, Heli and Nickel, Maximilian and Le, Matt},
+  booktitle  = {International Conference on Learning Representations (ICLR)},
+  year       = {2023}
+}
+
+@inproceedings{li2025qchunking,
+  title      = {Reinforcement Learning with Action Chunking},
+  author     = {Li, Qiyang and Zhou, Zhiyuan and Levine, Sergey},
+  booktitle  = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year       = {2025}
+}
+
+@inproceedings{mandlekar2021robomimic,
+  title     = {What Matters in Learning from Offline Human Demonstrations for Robot Manipulation},
+  author    = {Mandlekar, Ajay and Xu, Danfei and Wong, Josiah and Nasiriany, Soroush and Wang, Chen and Kulkarni, Rohun and Fei-Fei, Li and Savarese, Silvio and Zhu, Yuke and Mart{\'i}n-Mart{\'i}n, Roberto},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year      = {2021},
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Efficient adaptation of large pretrained models
+%% ---------------------------------------------------------------------------
+
+@inproceedings{hu2022lora,
+  title      = {{LoRA}: Low-Rank Adaptation of Large Language Models},
+  author     = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu and Chen, Weizhu},
+  booktitle  = {International Conference on Learning Representations (ICLR)},
+  year       = {2022}
+}
+
+@inproceedings{dettmers2023qlora,
+  title      = {{QLoRA}: Efficient Finetuning of Quantized {LLMs}},
+  author     = {Dettmers, Tim and Pagnoni, Artidoro and Holtzman, Ari and Zettlemoyer, Luke},
+  booktitle  = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year       = {2023}
+}
+
+@article{kirkpatrick2017ewc,
+  title   = {Overcoming Catastrophic Forgetting in Neural Networks},
+  author  = {Kirkpatrick, James and Pascanu, Razvan and Rabinowitz, Neil and Veness, Joel and Desjardins, Guillaume and Rusu, Andrei A. and Milan, Kieran and Quan, John and Ramalho, Tiago and Grabska-Barwinska, Agnieszka and Hassabis, Demis and Clopath, Claudia and Kumaran, Dharshan and Hadsell, Raia},
+  journal = {Proceedings of the National Academy of Sciences (PNAS)},
+  volume  = {114},
+  number  = {13},
+  pages   = {3521--3526},
+  year    = {2017}
+}
+
+@misc{marafioti2025smolvlm,
+  title      = {{SmolVLM}: Redefining Small and Efficient Multimodal Models},
+  author     = {Marafioti, Andres and Zohar, Orr and Farr{\'e}, Miquel and Noyan, Merve and Bakouch, Elie and Cuenca, Pedro and Zakka, Cyril and Ben Allal, Loubna and Lozhkov, Anton and Tazi, Nouamane and Srivastav, Vaibhav and Lochner, Joshua and Larcher, Hugo and Morlon, Mathieu and Tunstall, Lewis and von Werra, Leandro and Wolf, Thomas},
+  year       = {2025},
+  eprint     = {2504.05299},
+  eprinttype = {arXiv},
+  eprintclass = {cs.CV}
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Grasping and manipulation
+%% ---------------------------------------------------------------------------
+
+@inproceedings{bicchi2000grasping,
+  title     = {Robotic Grasping and Contact: A Review},
+  author    = {Bicchi, Antonio and Kumar, Vijay},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {348--353},
+  year      = {2000}
+}
+
+@inproceedings{mahler2017dexnet,
+  title      = {{Dex-Net}~2.0: Deep Learning to Plan Robust Grasps with Synthetic Point Clouds and Analytic Grasp Metrics},
+  author     = {Mahler, Jeffrey and Liang, Jacky and Niyaz, Sherdil and Laskey, Michael and Doan, Richard and Liu, Xinyu and Aparicio Ojea, Juan and Goldberg, Ken},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2017}
+}
+
+@inproceedings{fang2020graspnet,
+  title     = {{GraspNet-1Billion}: A Large-Scale Benchmark for General Object Grasping},
+  author    = {Fang, Hao-Shu and Wang, Chenxi and Gou, Minghao and Lu, Cewu},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {11444--11453},
+  year      = {2020}
+}
+
+@inproceedings{sundermeyer2021contactgraspnet,
+  title     = {Contact-{GraspNet}: Efficient 6-{DoF} Grasp Generation in Cluttered Scenes},
+  author    = {Sundermeyer, Martin and Mousavian, Arsalan and Triebel, Rudolph and Fox, Dieter},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {13438--13444},
+  year      = {2021}
+}
+
+@article{newbury2023graspreview,
+  title   = {Deep Learning Approaches to Grasp Synthesis: A Review},
+  author  = {Newbury, Rhys and Gu, Morris and Chumbley, Lachlan and Mousavian, Arsalan and Eppner, Clemens and Leitner, J{\"u}rgen and Bohg, Jeannette and Morales, Antonio and Asfour, Tamim and Kragic, Danica and Fox, Dieter and Cosgun, Akansel},
+  journal = {IEEE Transactions on Robotics (T-RO)},
+  volume  = {39},
+  number  = {5},
+  pages   = {3994--4015},
+  year    = {2023}
+}
+
+@article{levine2018handeye,
+  title   = {Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection},
+  author  = {Levine, Sergey and Pastor, Peter and Krizhevsky, Alex and Ibarz, Julian and Quillen, Deirdre},
+  journal = {The International Journal of Robotics Research (IJRR)},
+  volume  = {37},
+  number  = {4--5},
+  pages   = {421--436},
+  year    = {2018}
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Mobile manipulation
+%% ---------------------------------------------------------------------------
+
+@inproceedings{yenamandra2023homerobot,
+  title      = {{HomeRobot}: Open-Vocabulary Mobile Manipulation},
+  author     = {Yenamandra, Sriram and Ramachandran, Arun and Yadav, Karmesh and Wang, Austin and Khanna, Mukul and Gervet, Theophile and Yang, Tsung-Yen and Jain, Vidhi and Clegg, Alexander William and Turner, John and Kira, Zsolt and Savva, Manolis and Chang, Angel and Chaplot, Devendra Singh and Batra, Dhruv and Mottaghi, Roozbeh and Bisk, Yonatan and Paxton, Chris},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2023}
+}
+
+@inproceedings{fu2024mobilealoha,
+  title      = {Mobile {ALOHA}: Learning Bimanual Mobile Manipulation with Low-Cost Whole-Body Teleoperation},
+  author     = {Fu, Zipeng and Zhao, Tony Z. and Finn, Chelsea},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2024}
+}
+
+@article{wu2023tidybot,
+  title   = {{TidyBot}: Personalized Robot Assistance with Large Language Models},
+  author  = {Wu, Jimmy and Antonova, Rika and Kan, Adam and Lepert, Marion and Zeng, Andy and Song, Shuran and Bohg, Jeannette and Rusinkiewicz, Szymon and Funkhouser, Thomas},
+  journal = {Autonomous Robots},
+  volume  = {47},
+  number  = {8},
+  pages   = {1087--1102},
+  year    = {2023}
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Language grounding and shortcut learning
+%% ---------------------------------------------------------------------------
+
+@inproceedings{radford2021clip,
+  title     = {Learning Transferable Visual Models from Natural Language Supervision},
+  author    = {Radford, Alec and Kim, Jong Wook and Hallacy, Chris and Ramesh, Aditya and Goh, Gabriel and Agarwal, Sandhini and Sastry, Girish and Askell, Amanda and Mishkin, Pamela and Clark, Jack and Krueger, Gretchen and Sutskever, Ilya},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  year      = {2021}
+}
+
+@inproceedings{shridhar2021cliport,
+  title      = {{CLIPort}: What and Where Pathways for Robotic Manipulation},
+  author     = {Shridhar, Mohit and Manuelli, Lucas and Fox, Dieter},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2021}
+}
+
+@inproceedings{ahn2022saycan,
+  title      = {Do As {I} Can, Not As {I} Say: Grounding Language in Robotic Affordances},
+  author     = {Ahn, Michael and Brohan, Anthony and Brown, Noah and Chebotar, Yevgen and Cortes, Omar and David, Byron and Finn, Chelsea and Fu, Chuyuan and Gopalakrishnan, Keerthana and Hausman, Karol and others},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2022}
+}
+
+@inproceedings{liang2023codeaspolicies,
+  title     = {Code as Policies: Language Model Programs for Embodied Control},
+  author    = {Liang, Jacky and Huang, Wenlong and Xia, Fei and Xu, Peng and Hausman, Karol and Ichter, Brian and Florence, Pete and Zeng, Andy},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  pages     = {9493--9500},
+  year      = {2023}
+}
+
+@inproceedings{jiang2023vima,
+  title     = {{VIMA}: General Robot Manipulation with Multimodal Prompts},
+  author    = {Jiang, Yunfan and Gupta, Agrim and Zhang, Zichen and Wang, Guanzhi and Dou, Yongqiang and Chen, Yanjun and Fei-Fei, Li and Anandkumar, Anima and Zhu, Yuke and Fan, Linxi},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  year      = {2023}
+}
+
+@article{geirhos2020shortcut,
+  title   = {Shortcut Learning in Deep Neural Networks},
+  author  = {Geirhos, Robert and Jacobsen, J{\"o}rn-Henrik and Michaelis, Claudio and Zemel, Richard and Brendel, Wieland and Bethge, Matthias and Wichmann, Felix A.},
+  journal = {Nature Machine Intelligence},
+  volume  = {2},
+  number  = {11},
+  pages   = {665--673},
+  year    = {2020}
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Datasets and data scaling
+%% ---------------------------------------------------------------------------
+
+@inproceedings{bharadhwaj2024roboagent,
+  title      = {{RoboAgent}: Generalization and Efficiency in Robot Manipulation via Semantic Augmentations and Action Chunking},
+  author     = {Bharadhwaj, Homanga and Vakil, Jay and Sharma, Mohit and Gupta, Abhinav and Tulsiani, Shubham and Kumar, Vikash},
+  booktitle  = {IEEE International Conference on Robotics and Automation (ICRA)},
+  year       = {2024}
+}
+
+@inproceedings{walke2023bridgedata,
+  title      = {{BridgeData V2}: A Dataset for Robot Learning at Scale},
+  author     = {Walke, Homer and Black, Kevin and Lee, Abraham and Kim, Moo Jin and Du, Max and Zheng, Chongyi and Zhao, Tony and Hansen-Estruch, Philippe and Vuong, Quan and He, Andre and Myers, Vivek and Fang, Kuan and Finn, Chelsea and Levine, Sergey},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2023}
+}
+
+@inproceedings{khazatsky2024droid,
+  title      = {{DROID}: A Large-Scale In-the-Wild Robot Manipulation Dataset},
+  author     = {Khazatsky, Alexander and Pertsch, Karl and Nair, Suraj and Balakrishna, Ashwin and Dasari, Sudeep and Karamcheti, Siddharth and Nasiriany, Soroush and Srirama, Mohan Kumar and Chen, Lawrence Yunliang and Ellis, Kirsty and others},
+  booktitle  = {Robotics: Science and Systems (RSS)},
+  year       = {2024}
+}
+
+@inproceedings{lin2025datascaling,
+  title      = {Data Scaling Laws in Imitation Learning for Robotic Manipulation},
+  author     = {Lin, Fanqi and Hu, Yingdong and Sheng, Pingyue and Wen, Chuan and You, Jiacheng and Gao, Yang},
+  booktitle  = {International Conference on Learning Representations (ICLR)},
+  year       = {2025},
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Simulation, benchmarks and sim-to-real transfer
+%% ---------------------------------------------------------------------------
+
+@inproceedings{todorov2012mujoco,
+  title     = {{MuJoCo}: A Physics Engine for Model-Based Control},
+  author    = {Todorov, Emanuel and Erez, Tom and Tassa, Yuval},
+  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages     = {5026--5033},
+  year      = {2012}
+}
+
+@misc{zhu2020robosuite,
+  title      = {robosuite: A Modular Simulation Framework and Benchmark for Robot Learning},
+  author     = {Zhu, Yuke and Wong, Josiah and Mandlekar, Ajay and Mart{\'i}n-Mart{\'i}n, Roberto and Joshi, Abhishek and Nasiriany, Soroush and Zhu, Yifeng},
+  year       = {2020},
+  eprint     = {2009.12293},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
+}
+
+@misc{deepmind2022menagerie,
+  title        = {{MuJoCo} Menagerie: A Collection of High-Quality Simulation Models for {MuJoCo}},
+  author       = {{Google DeepMind}},
+  year         = {2022},
+  howpublished = {Software},
+  url          = {https://github.com/google-deepmind/mujoco_menagerie},
+  urldate      = {2026-08-01}
+}
+
+@misc{nasiriany2024robocasa,
+  title      = {{RoboCasa}: Large-Scale Simulation of Everyday Tasks for Generalist Robots},
+  author     = {Nasiriany, Soroush and Maddukuri, Abhiram and Zhang, Lance and Parikh, Adeet and Lo, Aaron and Joshi, Abhishek and Mandlekar, Ajay and Zhu, Yuke},
+  year       = {2024},
+  eprint     = {2406.02523},
+  eprinttype = {arXiv},
+  eprintclass = {cs.RO}
+}
+
+@inproceedings{nasiriany2026robocasa365,
+  title     = {{RoboCasa365}: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots},
+  author    = {Nasiriany, Soroush and Nasiriany, Sepehr and Maddukuri, Abhiram and Zhu, Yuke},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2026}
+}
+
+@inproceedings{liu2023libero,
+  title      = {{LIBERO}: Benchmarking Knowledge Transfer for Lifelong Robot Learning},
+  author     = {Liu, Bo and Zhu, Yifeng and Gao, Chongkai and Feng, Yihao and Liu, Qiang and Zhu, Yuke and Stone, Peter},
+  booktitle  = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  year       = {2023}
+}
+
+@article{mees2022calvin,
+  title   = {{CALVIN}: A Benchmark for Language-Conditioned Policy Learning for Long-Horizon Robot Manipulation Tasks},
+  author  = {Mees, Oier and Hermann, Lukas and Rosete-Beas, Erick and Burgard, Wolfram},
+  journal = {IEEE Robotics and Automation Letters (RA-L)},
+  volume  = {7},
+  number  = {3},
+  pages   = {7327--7334},
+  year    = {2022}
+}
+
+@article{james2020rlbench,
+  title   = {{RLBench}: The Robot Learning Benchmark and Learning Environment},
+  author  = {James, Stephen and Ma, Zicong and Rovick Arrojo, David and Davison, Andrew J.},
+  journal = {IEEE Robotics and Automation Letters (RA-L)},
+  volume  = {5},
+  number  = {2},
+  pages   = {3019--3026},
+  year    = {2020}
+}
+
+@inproceedings{yu2019metaworld,
+  title     = {Meta-World: A Benchmark and Evaluation for Multi-Task and Meta Reinforcement Learning},
+  author    = {Yu, Tianhe and Quillen, Deirdre and He, Zhanpeng and Julian, Ryan and Hausman, Karol and Finn, Chelsea and Levine, Sergey},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year      = {2019}
+}
+
+@inproceedings{li2024simpler,
+  title      = {Evaluating Real-World Robot Manipulation Policies in Simulation},
+  author     = {Li, Xuanlin and Hsu, Kyle and Gu, Jiayuan and Pertsch, Karl and Mees, Oier and Walke, Homer Rich and Fu, Chuyuan and Lunawat, Ishikaa and Sieh, Isabel and Kirmani, Sean and Levine, Sergey and Wu, Jiajun and Finn, Chelsea and Su, Hao and Vuong, Quan and Xiao, Ted},
+  booktitle  = {Conference on Robot Learning (CoRL)},
+  year       = {2024}
 }
 
 @inproceedings{tobin2017domainrand,
@@ -137,35 +554,86 @@
   year      = {2017}
 }
 
-@inproceedings{hu2022lora,
-  title     = {{LoRA}: Low-Rank Adaptation of Large Language Models},
-  author    = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu and Chen, Weizhu},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2022}
+@inproceedings{zhao2020sim2real,
+  title     = {Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: A Survey},
+  author    = {Zhao, Wenshuai and Queralta, Jorge Pe{\~n}a and Westerlund, Tomi},
+  booktitle = {IEEE Symposium Series on Computational Intelligence (SSCI)},
+  pages     = {737--744},
+  year      = {2020}
 }
 
-@inproceedings{lipman2023flowmatching,
-  title     = {Flow Matching for Generative Modeling},
-  author    = {Lipman, Yaron and Chen, Ricky T. Q. and Ben-Hamu, Heli and Nickel, Maximilian and Le, Matt},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2023}
+
+%% ---------------------------------------------------------------------------
+%% Evaluation methodology and statistics
+%% ---------------------------------------------------------------------------
+
+@article{wilson1927ci,
+  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
+  author  = {Wilson, Edwin B.},
+  journal = {Journal of the American Statistical Association (JASA)},
+  volume  = {22},
+  number  = {158},
+  pages   = {209--212},
+  year    = {1927}
 }
 
-@misc{zhu2020robosuite,
-  title         = {robosuite: A Modular Simulation Framework and Benchmark for Robot Learning},
-  author        = {Zhu, Yuke and Wong, Josiah and Mandlekar, Ajay and Mart{\'i}n-Mart{\'i}n, Roberto and Joshi, Abhishek and Nasiriany, Soroush and Zhu, Yifeng},
-  year          = {2020},
-  eprint        = {2009.12293},
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.RO}
+@article{brown2001binomial,
+  title   = {Interval Estimation for a Binomial Proportion},
+  author  = {Brown, Lawrence D. and Cai, T. Tony and DasGupta, Anirban},
+  journal = {Statistical Science},
+  volume  = {16},
+  number  = {2},
+  pages   = {101--133},
+  year    = {2001}
 }
 
-@misc{deepmind2022menagerie,
-  title        = {{MuJoCo} Menagerie: A Collection of High-Quality Simulation Models for {MuJoCo}},
-  author       = {{Google DeepMind}},
-  year         = {2022},
+@article{mcnemar1947test,
+  title   = {Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages},
+  author  = {McNemar, Quinn},
+  journal = {Psychometrika},
+  volume  = {12},
+  number  = {2},
+  pages   = {153--157},
+  year    = {1947}
+}
+
+@article{holm1979correction,
+  title   = {A Simple Sequentially Rejective Multiple Test Procedure},
+  author  = {Holm, Sture},
+  journal = {Scandinavian Journal of Statistics},
+  volume  = {6},
+  number  = {2},
+  pages   = {65--70},
+  year    = {1979}
+}
+
+@inproceedings{henderson2018matters,
+  title     = {Deep Reinforcement Learning That Matters},
+  author    = {Henderson, Peter and Islam, Riashat and Bachman, Philip and Pineau, Joelle and Precup, Doina and Meger, David},
+  booktitle = {AAAI Conference on Artificial Intelligence (AAAI)},
+  pages     = {3207--3214},
+  year      = {2018}
+}
+
+@inproceedings{agarwal2021precipice,
+  title      = {Deep Reinforcement Learning at the Edge of the Statistical Precipice},
+  author     = {Agarwal, Rishabh and Schwarzer, Max and Castro, Pablo Samuel and Courville, Aaron and Bellemare, Marc G.},
+  booktitle  = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year       = {2021},
+}
+
+
+%% ---------------------------------------------------------------------------
+%% Software, tooling and student work
+%% ---------------------------------------------------------------------------
+
+@misc{cadene2024lerobot,
+  title        = {{LeRobot}: State-of-the-Art Machine Learning for Real-World Robotics in {PyTorch}},
+  author       = {Cadene, Remi and Alibert, Simon and Soare, Alexander and Gallouedec, Quentin and Zouitine, Adil and Wolf, Thomas and others},
+  year         = {2024},
   howpublished = {Software},
-  note         = {\url{https://github.com/google-deepmind/mujoco_menagerie}}
+  url          = {https://github.com/huggingface/lerobot},
+  urldate      = {2026-08-01}
 }
 
 @misc{zakka2024mink,
@@ -173,47 +641,14 @@
   author       = {Zakka, Kevin},
   year         = {2024},
   howpublished = {Software},
-  note         = {\url{https://github.com/kevinzakka/mink}}
+  url          = {https://github.com/kevinzakka/mink},
+  urldate      = {2026-08-01}
 }
 
-@misc{marafioti2025smolvlm,
-  title         = {{SmolVLM}: Redefining Small and Efficient Multimodal Models},
-  author        = {Marafioti, Andres and Zohar, Orr and Farr{\'e}, Miquel and Noyan, Merve and Bakouch, Elie and Cuenca, Pedro and Zakka, Cyril and Ben Allal, Loubna and Lozhkov, Anton and Tazi, Nouamane and Srivastav, Vaibhav and Lochner, Joshua and Larcher, Hugo and Morlon, Mathieu and Tunstall, Lewis and von Werra, Leandro and Wolf, Thomas},
-  year          = {2025},
-  eprint        = {2504.05299},
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.CV}
-}
-
-@misc{cadene2024lerobot,
-  title        = {{LeRobot}: State-of-the-art Machine Learning for Real-World Robotics in {PyTorch}},
-  author       = {Cadene, Remi and Alibert, Simon and Soare, Alexander and Gallouedec, Quentin and Zouitine, Adil and Wolf, Thomas and others},
-  year         = {2024},
-  howpublished = {GitHub},
-  note         = {\url{https://github.com/huggingface/lerobot}}
-}
-
-@inproceedings{todorov2012mujoco,
-  title     = {{MuJoCo}: A physics engine for model-based control},
-  author    = {Todorov, Emanuel and Erez, Tom and Tassa, Yuval},
-  booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-  year      = {2012}
-}
-
-@misc{nvidia2025gr00t,
-  title        = {{NVIDIA Isaac GR00T N1}: An Open Foundation Model for Generalist Humanoid Robots},
-  author       = {{NVIDIA}},
-  year         = {2025},
-  howpublished = {Technical report},
-  note         = {GR00T N1.x}
-}
-
-@article{wilson1927ci,
-  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
-  author  = {Wilson, Edwin B.},
-  journal = {Journal of the American Statistical Association},
-  volume  = {22},
-  number  = {158},
-  pages   = {209--212},
-  year    = {1927}
+@thesis{kiviranta2025smolvla,
+  title  = {Deployment of a Small Vision-Language-Action Model for Low-Cost Manipulation: {SmolVLA} Finetuned for {SO-101}},
+  author = {Kiviranta, Arttu},
+  type   = {Bachelor's thesis},
+  institution = {Tampere University},
+  year   = {2025}
 }
