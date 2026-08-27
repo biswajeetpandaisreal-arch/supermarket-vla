@@ -112,7 +112,7 @@ list); this project is the **manipulation half (Part A)**.
 
 ## 9. RESULTS (headline numbers — memorise these)
 
-> ⚠️ **These numbers are under review — see `REVIEW_REPORT.md` before quoting them.**
+> ⚠️ **These numbers are under review — see `notes/REVIEW_REPORT.md` before quoting them.**
 > They are measured on a **fixed object pose**: the evaluation path applies no
 > positional jitter. Under the same ±2 cm jitter used to collect the training data,
 > 15k placement is **58.8%** (95% CI 48–69), not 80%. Whether the headline changes is
@@ -136,12 +136,12 @@ list); this project is the **manipulation half (Part A)**.
 
 ## 10. Known limitations
 - **Evaluated on a fixed object pose.** `env.reset()` applies no jitter; under ±2 cm
-  jitter placement falls to 58.8%. See `REVIEW_REPORT.md` §1.
+  jitter placement falls to 58.8%. See `notes/REVIEW_REPORT.md` §1.
 - **No visual grounding.** The policy maps word → memorised trajectory: displace an
-  item and it still reaches the trained position (216/216 trials). `REVIEW_REPORT.md` §2.
+  item and it still reaches the trained position (216/216 trials). `notes/REVIEW_REPORT.md` §2.
 - Milk weakest (60% place / 70% grasp) — partly a **metric artefact**: `grasped` is
   `max_lift > 0.05 m` and milk's median lift is 0.054 m, so its grasp rate is a lower
-  bound. `REVIEW_REPORT.md` §7.
+  bound. `notes/REVIEW_REPORT.md` §7.
 - Multi-item lists < single picks — **not** explained by basket occupancy (EXP-5).
 - Cereal excluded (grip slip).
 - Simulation only (no sim-to-real claimed).
@@ -173,15 +173,12 @@ scripts/make_arch_diagram.py     SmolVLA architecture diagram
 scripts/make_journey_diagram.py  RoboCasa->UR10e->Supermarket progression
 scripts/make_camera_views.py     the 3 camera views figure
 scripts/make_thesis_figures.py   env layout, near-miss schematic, pipeline flow
-scripts/build_ppt.py             builds the 25-slide presentation
-scripts/patch_ppt_slides.py      patches ppt slides 10/22/23
-scripts/patch_add_slides.py      adds ideal-system + thank-you slides
 shared/instruction_templates.py  ITEM_NAMES, TEMPLATES, instruction_for()
 thesis/                          Cranfield LaTeX thesis (main.tex + chapters/ + references.bib + figures/)
 outputs/                         plots/, poster/, stage1/, train/, ppt_assets/
 data/supermarket_manip_lerobot/  the LeRobot dataset
 .venv -> ../smolvla_ur10e/.venv  shared virtualenv
-Docs: PLAN.md, DECISIONS.md, RUNNING.md, REPORT_NOTES.md, README.md,
+Docs: notes/PLAN.md, notes/DECISIONS.md, RUNNING.md, notes/REPORT_NOTES.md, README.md,
       PRESENTATION.md, PRESENTATION_SCRIPT.md, PROJECT_KNOWLEDGE.md (this file)
 ```
 

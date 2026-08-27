@@ -55,8 +55,9 @@ supermarket service robot (manipulation VLA + navigation VLA + orchestrator).
 - Thesis (Cranfield CUThesis2026, numbered citations, Times font): `thesis/`
   (`main.tex`, `chapters/`, `references.bib`, `figures/`); compile on Overleaf
   (pdfLaTeX + biber).
-- Presentation: `scripts/build_ppt.py` → `outputs/supermarket_vla.pptx`;
-  speaker notes in `PRESENTATION_SCRIPT.md`.
+- Presentation: `outputs/supermarket_vla.pptx` (the deck-building scripts were
+  removed; regenerate from git history if needed); speaker notes in
+  `PRESENTATION_SCRIPT.md`.
 
 ## Working style
 - Keep code minimalistic and match the existing style; small, verifiable changes.

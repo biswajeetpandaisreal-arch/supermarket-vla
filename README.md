@@ -7,7 +7,7 @@ vision-language-action (VLA) models**: one for **manipulation**, one for
 **navigation**. Built in **MuJoCo**, trained locally on a **12 GB GPU**.
 
 > This README is the poster-building reference. Companion docs:
-> `PLAN.md` (roadmap), `DECISIONS.md` (chronological decisions), `REPORT_NOTES.md`
+> `notes/PLAN.md` (roadmap), `notes/DECISIONS.md` (chronological decisions), `notes/REPORT_NOTES.md`
 > (full write-up notes).
 
 ---

@@ -198,7 +198,7 @@ All figure paths are relative to the project root. Numbers are from the actual r
 ---
 
 ### Plots you still need to generate (for slides 7, 11)
-Both are ~15 min of matplotlib on numbers already in `REPORT_NOTES.md`:
+Both are ~15 min of matplotlib on numbers already in `notes/REPORT_NOTES.md`:
 1. **Per-item place % with Wilson-CI error bars** (Slide 7/8).
 2. **Place % vs training step**, marking the 15k peak (Slide 11).
 Say the word and I'll generate them as PNGs you can drop straight in.
