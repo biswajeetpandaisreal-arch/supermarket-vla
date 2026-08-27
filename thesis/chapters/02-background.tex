@@ -1,6 +1,36 @@
 \chapter{Literature Review}
 \label{chap:background}
 
+This chapter moves from the general to the specific: from generalist robot policies
+(\refsec{sec:bg-vla}) and the model used here (\refsec{sec:bg-smolvla}), through the
+techniques that make it trainable on modest hardware (\refsec{sec:bg-efficient}), to
+the learning paradigm (\refsec{sec:bg-il}), the physical skill
+(\refsec{sec:bg-grasp}), the embodiment (\refsec{sec:bg-mobile}) and the linguistic
+capability (\refsec{sec:bg-lang}) the task demands. It then examines the two areas the
+results turn out to depend on most --- the training data (\refsec{sec:bg-data}) and how
+performance is measured (\refsec{sec:bg-eval}) --- before stating the gap this work
+addresses (\refsec{sec:bg-gap}).
+
+\section{Scope and method of the review}
+\label{sec:bg-scope}
+The review covers four intersecting literatures: VLA models and generalist robot
+policies; imitation learning for manipulation; language grounding for embodied agents;
+and the simulation, benchmarking and evaluation practices used to assess such systems.
+Sources were gathered from the major robotics and machine-learning venues (CoRL, RSS,
+ICRA, IROS, NeurIPS, ICLR, ICML, and the journals T-RO, RA-L and IJRR) together with
+arXiv preprints, which in this fast-moving field frequently precede or replace formal
+publication. Searches combined the terms \emph{vision-language-action}, \emph{robot
+foundation model}, \emph{imitation learning}, \emph{action chunking},
+\emph{language-conditioned manipulation}, \emph{behaviour cloning} and
+\emph{sim-to-real}, supplemented by citation tracing from the survey of
+\textcite{sapkota2026vla} and the SmolVLA report \parencite{shukor2025smolvla}.
+
+Two boundaries apply. The review is weighted toward work from 2022 onward, since the
+VLA framing dates only to 2023 \parencite{zitkovich2023rt2}; older work is included
+where it establishes a concept still in use, such as behaviour cloning
+\parencite{pomerleau1988alvinn}. Reinforcement learning is treated only where it bears
+on imitation learning, since no reward signal is used in this thesis.
+
 \section{Vision--Language--Action models}
 \label{sec:bg-vla}
 Classical robot learning trains one policy per task: given enough demonstrations
@@ -19,10 +49,10 @@ A VLA is typically built from three parts \parencite{sapkota2026vla}: a
 \emph{vision encoder} that turns images into visual features; a \emph{language
 model} that reads the instruction and reasons over image and text, usually
 inherited wholesale from a pretrained VLM; and an \emph{action decoder} (or action
-expert) that turns the fused representation into low-level robot actions. Two
-design choices recur across modern VLAs and matter directly for this work:
+expert) that turns the fused representation into low-level robot actions. Three
+design choices recur across modern VLAs and matter directly for this work.
 
-\paragraph{Action chunking.} Rather than predicting one action per timestep, the
+\subsection{Action chunking.} Rather than predicting one action per timestep, the
 policy predicts a short sequence (a ``chunk'') of future actions in a single
 forward pass, then executes some or all of that chunk before re-planning. Action
 chunking was introduced by ACT and shown to enable fine-grained behaviours by
@@ -30,9 +60,14 @@ modelling temporally consistent action sequences
 \parencite{zhao2023act, wang2026vlalimits}. The number of chunk steps actually
 executed before re-planning (the execution horizon) has a strong, non-monotonic
 effect on success: too short sacrifices smoothness, too long sacrifices
-reactivity to a changing environment \parencite{wang2026vlalimits}.
+reactivity \parencite{wang2026vlalimits}. The mechanism is now near-universal ---
+in diffusion policies \parencite{chi2023diffusionpolicy}, flow-matching VLAs
+\parencite{black2024pi0, shukor2025smolvla} and even reinforcement learning
+\parencite{li2025qchunking}. Because the chunk is an explicit multi-step plan, it can
+also be read out directly as a window onto the policy's intention
+(\refsec{sec:results-interpret}).
 
-\paragraph{Pretrain-then-post-train.} A VLA's backbone is pretrained once on broad,
+\subsection{Pretrain-then-post-train.} A VLA's backbone is pretrained once on broad,
 non-robot data (or an existing VLM checkpoint), then \emph{post-trained}
 (fine-tuned) on a much smaller robot-specific dataset for the target embodiment and
 task \parencite{xiang2026posttraining}. This two-stage recipe is the whole point
@@ -41,299 +76,520 @@ knowing what objects and language look like, and need only learn the motor
 mapping. This directly motivates the frozen-backbone strategy in
 \refChap{chap:methodology}.
 
+\subsection{Action representation.} Early VLAs discretised each action dimension into
+bins and emitted them as text tokens, reducing action prediction to next-token
+prediction \parencite{zitkovich2023rt2, kim2024openvla}. This needs no new output head
+but is coarse, because continuous joint targets are quantised, and slow, because a
+chunk of $H$ actions over $d$ dimensions costs $H\times d$ decoding steps. The
+alternative is a continuous action head trained as a conditional generative model:
+denoising diffusion \parencite{chi2023diffusionpolicy} or a flow-matching field
+\parencite{lipman2023flowmatching, black2024pi0, shukor2025smolvla}. These emit a whole
+continuous chunk in a few integration steps, which suits fine manipulation
+(\refsec{sec:bg-flow}).
+
 \subsection{A short lineage}
 \label{sec:bg-lineage}
-Following the surveys of \textcite{sapkota2026vla}: early systems
-(2022) combined pretrained vision--language embeddings with hand-designed motion
-primitives. In 2023, ACT introduced action-chunking transformers
-\parencite{zhao2023act}, and RT-2 coined the ``VLA'' framing by fine-tuning a
-large pretrained VLM directly on robot trajectories, representing actions as text
-tokens so that web-scale knowledge transferred into control
-\parencite{zitkovich2023rt2}. In 2024--2025, open-weight and efficiency-focused
-VLAs proliferated. $\pi_{0.5}$ demonstrated open-world generalisation to entirely
-new homes by co-training on heterogeneous data sources (other robots, subtask
-labels, web data), with target-embodiment demonstrations only a small fraction of
-training data \parencite{black2025pi05}. SmolVLA, used in this thesis, belongs to
-this efficiency-focused generation.
+Following \textcite{sapkota2026vla}, four overlapping generations can be traced.
+
+\subsubsection{Precursors (2021--2022).} Early systems combined pretrained
+vision--language embeddings with hand-designed primitives. CLIPort attached CLIP's
+semantic representation \parencite{radford2021clip} to a spatial manipulation head,
+separating ``what'' from ``where'' \parencite{shridhar2021cliport}; SayCan used a
+language model to select among a fixed skill library, weighting each candidate by a
+learned affordance \parencite{ahn2022saycan}. Language operated \emph{above} a fixed
+repertoire of controllers rather than inside the controller itself.
+
+\subsubsection{Transformer policies (2022--2023).} RT-1 trained a transformer end to
+end on 130{,}000 real teleoperated episodes, showing a single network could absorb a
+large multi-task dataset \parencite{brohan2023rt1}. ACT introduced action chunking for
+fine-grained manipulation from only tens of demonstrations \parencite{zhao2023act}, and
+Diffusion Policy showed that modelling the action distribution generatively resolves
+the multimodality that makes behaviour cloning brittle
+\parencite{chi2023diffusionpolicy}. RT-2 then coined the ``VLA'' framing, fine-tuning a
+large VLM directly on robot trajectories and reporting emergent capabilities no purely
+robot-trained policy exhibited \parencite{zitkovich2023rt2}.
+
+\subsubsection{Open models and shared data (2023--2024).} Open X-Embodiment pooled data
+from 22 embodiments and showed positive transfer across them
+\parencite{padalkar2024openx}. Octo \parencite{ghosh2024octo} and OpenVLA
+\parencite{kim2024openvla} released open-weight generalist policies trained on that
+corpus, making VLA research reproducible outside industrial laboratories --- a
+precondition for work such as this thesis.
+
+\subsubsection{Flow-matching and efficiency-focused models (2024--2026).} $\pi_0$
+replaced token decoding with a flow-matching action expert \parencite{black2024pi0},
+and $\pi_{0.5}$ extended this to open-world generalisation by co-training on
+heterogeneous sources, with target-embodiment demonstrations only a small fraction of
+the mixture \parencite{black2025pi05}. GR00T~N1 applied a dual-system reasoning/control
+split to humanoids \parencite{nvidia2025gr00t}, and Gemini Robotics brought a frontier
+VLM into the same framing \parencite{deepmind2025gemini}. Alongside this scaling trend
+runs a smaller literature concerned with cost: TinyVLA argues a compact backbone with a
+diffusion head can match far larger models on individual tasks
+\parencite{wen2025tinyvla}, and later work shows fine-tuning recipe choices affect speed
+and success as much as parameter count \parencite{kim2025oft}. SmolVLA belongs to this
+generation \parencite{shukor2025smolvla}.
+
+For a project constrained to a single consumer GPU, every model in the fourth
+generation except the efficiency-focused ones is out of reach --- not merely slow to
+fine-tune but impossible to fine-tune at all within \SI{12}{GB}. The practical question
+is therefore what the \emph{smallest} models in this lineage can and cannot do, which
+the literature answers only partially (\refsec{sec:bg-gap}).
 
 \section{SmolVLA}
 \label{sec:bg-smolvla}
 SmolVLA is a compact (approximately 450~million parameter) open VLA distributed
 through Hugging Face LeRobot, designed for efficient fine-tuning and deployment on
 modest hardware \parencite{shukor2025smolvla, cadene2024lerobot}. It combines a
-compact pretrained VLM (SmolVLM-2, \cite{marafioti2025smolvlm}) with a flow-matching
-action expert. It
-processes multi-image and language inputs to produce robot action chunks, and uses
-visual-token reduction and a layer-skipping technique that lets the action expert
-access features from an intermediate VLM layer; the action expert interleaves
-cross-attention and causal self-attention layers
-\parencite{kiviranta2025smolvla, shukor2025smolvla}. These properties make it a
-capable VLA that fine-tunes comfortably within a 12~GB budget, which is why it is
-selected here. The 12~GB ceiling constrained model selection throughout: it ruled out
-fine-tuning the multi-billion-parameter families outright, and, as
-\refchap{chap:methodology} describes, it also ruled out unfreezing the vision backbone
-once three camera streams were in use. No claim is made that SmolVLA is the
-\emph{largest} model that would fit; the one larger candidate trialled here,
-$\pi_0$, could not be brought up for reasons unrelated to memory
+compact pretrained VLM (SmolVLM-2, \parencite{marafioti2025smolvlm}) with a
+flow-matching action expert, processing multi-image and language inputs to produce
+action chunks. It uses visual-token reduction and a layer-skipping technique that lets
+the action expert read features from an intermediate VLM layer; the action expert
+interleaves cross-attention and causal self-attention layers
+\parencite{kiviranta2025smolvla, shukor2025smolvla}. Its pretraining corpus is
+community-contributed data from low-cost arms rather than an industrial fleet, which is
+part of the same affordability argument \parencite{shukor2025smolvla}.
+
+The \SI{12}{GB} ceiling constrained model selection throughout: it ruled out the
+multi-billion-parameter families outright and, as \refChap{chap:methodology} describes,
+also ruled out unfreezing the vision backbone once three camera streams were in use. No
+claim is made that SmolVLA is the \emph{largest} model that would fit; the one larger
+candidate trialled, $\pi_0$, could not be brought up for reasons unrelated to memory
 (\refsec{sec:results-journey}), so the question was never settled empirically.
 
-Relative to the discrete-token approach of RT-2 \parencite{zitkovich2023rt2}, which
-represents actions as text tokens and decodes them autoregressively, SmolVLA's
-flow-matching action head produces continuous action chunks in a single pass; this is
-both faster at inference and better suited to the smooth, fine-grained motion that
-manipulation requires. Relative to the multi-billion-parameter $\pi_{0}/\pi_{0.5}$ and
-GR00T families \parencite{black2025pi05, nvidia2025gr00t}, which target broad
-generalisation and (for GR00T) a dual-system reasoning/control split, SmolVLA
-sacrifices peak capability for a large reduction in size. That trade is exactly the one
-this thesis interrogates: whether the smaller model is nonetheless \emph{sufficient}
-for a controlled, language-conditioned manipulation task under a hard hardware ceiling.
-The efficiency techniques it employs --- visual-token reduction and intermediate-layer
-feature access --- are precisely what allow its compact backbone to be evaluated on
-three camera streams within the memory and latency envelope of a consumer GPU.
+Relative to the discrete-token approach of RT-2 \parencite{zitkovich2023rt2} and
+OpenVLA \parencite{kim2024openvla}, SmolVLA's flow-matching head produces continuous
+chunks in a single pass --- faster at inference and better suited to fine-grained
+motion. Relative to $\pi_{0}/\pi_{0.5}$ and GR00T
+\parencite{black2024pi0, black2025pi05, nvidia2025gr00t}, it sacrifices peak capability
+for a large reduction in size. That trade is exactly what this thesis interrogates:
+whether the smaller model is nonetheless \emph{sufficient} for a controlled,
+language-conditioned task under a hard hardware ceiling.
 
-Kiviranta's bachelor's thesis fine-tunes the same SmolVLA checkpoint on the
-low-cost SO-101 arm and reports an 80\% success rate on a single task from around
-100 demonstrations, while noting that sequential multi-task fine-tuning caused
-catastrophic forgetting and that language conditioning functioned more as a proof
-of concept than a fully working instruction-following system
-\parencite{kiviranta2025smolvla}. These observations --- both the achievable
-success level and the fragility of naive fine-tuning --- are a useful sanity check
-for the results in \refChap{chap:results}.
+Kiviranta's bachelor's thesis fine-tunes the same checkpoint on the low-cost SO-101 arm
+and reports an 80\% success rate on a single task from around 100 demonstrations, while
+noting that sequential multi-task fine-tuning caused catastrophic forgetting and that
+language conditioning functioned more as a proof of concept than a working
+instruction-following system \parencite{kiviranta2025smolvla}. As far as this review
+found, it is the only independent published evaluation of SmolVLA under a low-budget
+single-task regime, which makes it the closest available comparison despite differing in
+embodiment and in using real hardware rather than simulation.
 
 \subsection{A comparison of representative policies}
 \label{sec:bg-compare}
-\reftab{tab:vlacompare} situates SmolVLA among representative policies relevant to
-this thesis. Two axes matter most for the present work: the parameter count (which
-determines whether fine-tuning fits a 12~GB GPU) and the action representation
-(which affects control smoothness and inference cost). Discrete-token VLAs such as
-RT-2 decode actions autoregressively as text, which is expressive but coarse and
-slow; flow-matching and diffusion policies such as $\pi_0$/$\pi_{0.5}$ and SmolVLA
-emit continuous action chunks, which suit fine manipulation. Among openly available
-models, SmolVLA is distinguished less by peak capability than by \emph{efficiency}:
-it is the option in this set that fine-tunes and runs within the target budget,
-which is precisely why it is selected here.
+\reftab{tab:vlacompare} situates SmolVLA among representative policies. Three axes
+matter here: parameter count (whether fine-tuning fits \SI{12}{GB}), action
+representation (control smoothness and inference cost), and whether the model accepts a
+language instruction at all (whether it can select among items). The table also shows
+why ACT is the appropriate control rather than merely a weaker alternative: it shares
+SmolVLA's action representation and differs principally in scale and in the absence of
+a language pathway, which isolates the contribution of each (\refsec{sec:results-act}).
 
 \begin{table}[ht]
 \caption{Representative policies relevant to this thesis. Parameter counts are
-approximate and indicative. ACT is included as the non-VLA imitation baseline.}
+approximate and indicative. ACT and Diffusion Policy are non-VLA imitation baselines;
+the final column records whether the model could be fine-tuned within the \SI{12}{GB}
+budget adopted here.}
 \begin{center}
 \tagpdfsetup{table/header-rows={1}}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Policy & Approx.\ size & Action representation & Language input \\
+Policy & Approx.\ size & Action representation & Language & Fits 12\,GB \\
 \midrule
-ACT \cite{zhao2023act}              & $\sim$80\,M   & continuous chunk (from scratch) & no \\
-RT-2 \cite{zitkovich2023rt2}        & billions      & discrete text tokens            & yes \\
-$\pi_{0.5}$ \cite{black2025pi05}    & $\sim$3\,B    & flow-matching chunk             & yes \\
-GR00T N1.6 \cite{nvidia2025gr00t}   & billions      & diffusion (dual-system)         & yes \\
-\textbf{SmolVLA} \cite{shukor2025smolvla} & $\sim$450\,M & flow-matching chunk       & yes \\
+ACT \parencite{zhao2023act}                       & $\sim$80\,M   & continuous chunk (from scratch) & no  & yes \\
+Diffusion Policy \parencite{chi2023diffusionpolicy} & $\sim$80\,M & diffusion chunk (from scratch)  & no  & yes \\
+RT-2 \parencite{zitkovich2023rt2}                 & billions      & discrete text tokens            & yes & no \\
+OpenVLA \parencite{kim2024openvla}                & $\sim$7\,B    & discrete text tokens            & yes & no \\
+$\pi_{0}$ \parencite{black2024pi0}                & $\sim$3\,B    & flow-matching chunk             & yes & no \\
+$\pi_{0.5}$ \parencite{black2025pi05}             & $\sim$3\,B    & flow-matching chunk             & yes & no \\
+GR00T N1.6 \parencite{nvidia2025gr00t}            & billions      & diffusion (dual-system)         & yes & no \\
+\textbf{SmolVLA} \parencite{shukor2025smolvla}    & $\sim$450\,M  & flow-matching chunk             & yes & \textbf{yes} \\
 \bottomrule
 \end{tabular}
 \end{center}
 \label{tab:vlacompare}
 \end{table}
 
+\section{Efficient adaptation under a hardware constraint}
+\label{sec:bg-efficient}
+Because the hardware ceiling is a first-class constraint here, the techniques for
+adapting a large pretrained model on a small device deserve their own treatment.
+
+\subsection{Freezing.} The simplest option is to update only part of the network,
+usually holding the vision--language backbone fixed and training only the action
+expert. This eliminates optimiser state and gradients for the frozen parameters and,
+more importantly, avoids storing backbone activations for the backward pass. The
+argument is not only memory: a backbone pretrained on large image--text corpora already
+encodes the structure the task needs, and back-propagating into it from a few hundred
+demonstrations risks overwriting that prior --- the catastrophic forgetting
+characterised by \textcite{kirkpatrick2017ewc} and observed for VLA fine-tuning by
+\textcite{kiviranta2025smolvla}. The counter-argument is that a frozen backbone cannot
+adapt to a distribution it was not trained on, which matters when images are synthetic
+renders (\refsec{sec:bg-sim}).
+
+\subsection{Low-rank adaptation.} LoRA inserts trainable low-rank matrices alongside
+frozen weights, giving a middle path at a fraction of the memory cost
+\parencite{hu2022lora}; QLoRA adds 4-bit quantisation of the frozen weights
+\parencite{dettmers2023qlora}. OpenVLA's released recipe uses LoRA for new-embodiment
+fine-tuning \parencite{kim2024openvla}. LoRA is not used here --- freezing sufficed ---
+but low-rank adaptation of the \emph{vision} layers is exactly what the sim-to-real
+argument of \refsec{sec:bg-sim} suggests, and is discussed as future work.
+
+\subsection{Architectural efficiency.} Rather than adapting a large model cheaply, one
+can design a small one. TinyVLA pairs a sub-billion-parameter backbone with a diffusion
+head at a fraction of the training and inference cost \parencite{wen2025tinyvla};
+SmolVLA reduces visual tokens and skips the upper half of the VLM at inference
+\parencite{shukor2025smolvla}. These techniques are what make the present work possible.
+
+\subsection{Recipe choices.} \textcite{kim2025oft} report that action head, number of
+input views and decoding scheme affect throughput and success substantially, sometimes
+more than model size does --- the same kind of point that \refsec{sec:bg-data} and
+\refsec{sec:bg-eval} make about data and metrics.
+
 \section{ACT: an imitation-learning baseline}
 \label{sec:bg-act}
-ACT (Action Chunking Transformer) is worth naming precisely because it is used as a
-baseline in the preliminary study of \refsec{sec:results-journey}. ACT is a
-\emph{from-scratch} imitation-learning policy, \emph{not} a VLA: it has no
-pretrained language backbone and cannot accept a free-form text instruction. It is
-trained end-to-end on a single task's demonstrations and predicts action chunks
-directly from camera images and joint state \parencite{zhao2023act}. It therefore
-represents the classical, no-pretraining approach against which a VLA is compared:
-ACT shows what a narrow action-chunking policy can achieve on a task, while SmolVLA
-shows what the same task looks like with a pretrained vision--language prior.
+ACT (Action Chunking Transformer) is named precisely because it serves both as the
+baseline in the preliminary study (\refsec{sec:results-journey}) and as a same-task
+capacity control (\refsec{sec:results-act}). ACT is a \emph{from-scratch}
+imitation-learning policy, \emph{not} a VLA: it has no pretrained language backbone and
+cannot accept a free-form text instruction. It is trained end-to-end on a single task's
+demonstrations and predicts action chunks directly from camera images and joint state,
+using a conditional variational autoencoder to model the demonstrator's variability
+\parencite{zhao2023act}. It therefore represents the classical, no-pretraining approach
+against which a VLA is compared.
+
+The closest alternative baseline is Diffusion Policy
+\parencite{chi2023diffusionpolicy}, which shares ACT's chunked formulation but models
+the action distribution by denoising diffusion rather than by regression. That
+difference is not merely technical. ACT's reconstruction loss is $L1$, which is
+median-seeking: when the data contain several distinct behaviours consistent with the
+same observation, an $L1$-trained policy collapses onto one rather than averaging them.
+Diffusion and flow-matching objectives instead represent the full distribution
+\parencite{chi2023diffusionpolicy, lipman2023flowmatching}. This is directly visible in
+the results: trained on four items with no way to tell them apart, ACT collapses onto
+the single most reliable behaviour (\refsec{sec:results-act}) --- exactly what the
+objective predicts. ACT was chosen over Diffusion Policy because it is the baseline used
+in the preliminary study, because SmolVLA inherits its chunking mechanism, and because
+it is supported directly in LeRobot, allowing an identical pipeline for both.
 
 \section{Imitation learning and behaviour cloning}
 \label{sec:bg-il}
-Both policies studied in this thesis are trained by \emph{imitation learning}, and
-specifically by \emph{behaviour cloning}: a policy $\pi_\theta(\mathbf{a}\mid
-\mathbf{o})$ is fitted to reproduce the actions in a fixed dataset of
-(observation, action) pairs collected from a demonstrator, here a scripted
-inverse-kinematics controller, without any reward signal or environment interaction
-during training. The approach dates to ALVINN \parencite{pomerleau1988alvinn}, which
-trained a network to steer a vehicle directly from camera input. Behaviour cloning is
-attractive for its simplicity and stability and because it requires no reward
-engineering, but it has a well-known weakness: \emph{covariate shift}. Because the
-policy is only ever trained on states visited by the demonstrator, small errors at run
-time move the robot into states that are under-represented in the data, where the
-policy is less certain and makes larger errors, which compound --- an effect analysed
-formally by \textcite{ross2011dagger}, whose DAgger algorithm addresses it by
-iteratively querying the expert on states the learner actually visits. DAgger is not
-used here, since the scripted expert could in principle supply such labels but the
-training set was fixed in advance. Action chunking mitigates this partially by committing to
-temporally consistent multi-step behaviour, which reduces the high-frequency error
-accumulation that single-step policies suffer, and is one reason it has become
-standard in both ACT and VLAs \cite{zhao2023act, li2025qchunking}.
+Both policies studied here are trained by \emph{imitation learning}, specifically
+\emph{behaviour cloning}: a policy $\pi_\theta(\mathbf{a}\mid\mathbf{o})$ is fitted to
+reproduce the actions in a fixed dataset of (observation, action) pairs from a
+demonstrator --- here a scripted inverse-kinematics controller --- without any reward
+signal or environment interaction during training. The approach dates to ALVINN
+\parencite{pomerleau1988alvinn}. It is attractive for its simplicity and because it
+needs no reward engineering, but has two well-known weaknesses.
 
-A complementary remedy is to enrich the demonstration distribution so that it
-covers the states a trained policy actually visits, including recoveries from
-error. The DAgger family of algorithms formalises this by iteratively rolling out
-the current policy, having an expert label the visited states, and retraining;
-practical variants collect ``drifted-then-recovered'' demonstrations in which the
-imperfect policy acts for a while and a reliable controller then completes the task.
-The pilot study underlying this thesis experimented with such recovery data
-(\refsec{sec:results-journey}); in the supermarket task, the same intuition appears
-as per-episode positional jitter and as the deliberate variety of instruction
-paraphrases, both of which broaden the training distribution without an interactive
-labelling loop. The relationship between demonstration variety and generalisation is
-a recurring theme in the manipulation literature \cite{bharadhwaj2024roboagent,
-black2025pi05} and is corroborated first-hand in \refChap{chap:results}.
+\subsection{Covariate shift.} Because the policy is only ever trained on states visited
+by the demonstrator, small errors at run time move the robot into under-represented
+states, where it makes larger errors, which compound --- analysed formally by
+\textcite{ross2011dagger}, whose DAgger algorithm iteratively queries the expert on
+states the learner actually visits. HG-DAgger reduces the expert's burden by taking over
+only when the learner is about to fail \parencite{kelly2019hgdagger}. DAgger is not used
+here, since the training set was fixed in advance. Action chunking mitigates the problem
+partially by committing to temporally consistent multi-step behaviour, which is one
+reason it is standard in both ACT and VLAs
+\parencite{zhao2023act, li2025qchunking}.
+
+\subsection{Multimodality.} Demonstrations are not a function: the same observation may
+be followed by several equally valid actions. How a policy resolves this is determined
+by its loss. An $L2$ objective averages the modes, which can produce a physically
+invalid action; $L1$ selects one; generative objectives
+\parencite{chi2023diffusionpolicy, lipman2023flowmatching} represent the distribution
+and sample from it. This is the principal architectural reason modern manipulation
+policies are generative, and a property SmolVLA inherits (\refsec{sec:bg-flow}).
+
+\subsection{What the demonstrations contain.} A complementary remedy is to enrich the
+demonstration distribution so it covers the states a trained policy actually visits,
+including recoveries from error. In the supermarket task this appears as per-episode
+positional jitter and as deliberate variety of instruction paraphrases, both of which
+broaden the training distribution without an interactive labelling loop.
+\textcite{mandlekar2021robomimic} conduct the most systematic study of this question,
+finding across several manipulation tasks that dataset composition and observation
+design frequently matter more than the choice of learning algorithm --- a conclusion
+this thesis reproduces independently in \refChap{chap:results}. The link between
+demonstration variety and generalisation recurs throughout the manipulation literature
+\parencite{bharadhwaj2024roboagent, black2025pi05, lin2025datascaling}.
 
 \section{Robotic grasping and manipulation}
 \label{sec:bg-grasp}
-Grasping is the core physical skill in this task, and the policy's behaviour is best
-understood against the classical grasping literature. Traditional approaches treat
-grasp synthesis as an analytic or model-based problem --- computing grasp points that
-achieve force closure given the object geometry and friction
-\parencite{bicchi2000grasping} --- whereas learning-based approaches predict grasps or
-grasping actions directly from sensor data, either by scoring candidate grasps against
-learned robustness metrics \parencite{mahler2017dexnet} or, as here, by producing
-grasping actions end-to-end as part of a closed-loop policy. The scripted
-expert in this thesis is deliberately of the former kind: it uses inverse kinematics
-to reach a hand-specified top-down grasp pose, which is reliable precisely because the
-object models and poses are known in simulation. The learned policy, by contrast,
-must infer an appropriate grasp from images alone, which is why its grasp success
-rate (92.5\%) is a meaningful measure of learned competence rather than of scripted
-precision.
+Grasping is the core physical skill in this task. Traditional approaches treat grasp
+synthesis as an analytic problem --- computing grasp points that achieve force closure
+given object geometry and friction \parencite{bicchi2000grasping} --- whereas
+learning-based approaches predict grasps directly from sensor data. Within the learning
+family, a useful distinction is between \emph{open-loop grasp detectors}, which propose
+a pose from a single observation and hand it to a planner, and \emph{closed-loop
+visuomotor policies}, which output actions continuously and correct as they go
+\parencite{newbury2023graspreview}. The detector line runs from Dex-Net, which scored
+candidates against learned robustness metrics \parencite{mahler2017dexnet}, through
+GraspNet-1Billion \parencite{fang2020graspnet} to 6-DoF methods generating grasps from
+scene point clouds in clutter \parencite{sundermeyer2021contactgraspnet}. The
+closed-loop line begins with systems that learned hand--eye coordination from months of
+real grasping attempts \parencite{levine2018handeye} and leads to the imitation-learned
+policies studied here.
 
-Two practical grasping considerations shape the design. First, a two-finger parallel
-gripper imposes constraints on object geometry: wide or smooth objects are prone to
-slipping, which is exactly why the cereal box (widest face) is excluded and why the
-water bottle requires a higher, more stable grip point (\refChap{chap:methodology}).
-Second, the \emph{approach direction} matters: a top-down grasp followed by a frontal
-extraction was adopted because the target shelf bay is enclosed from above, so a
-purely vertical lift is infeasible. These constraints are not incidental --- they are
-representative of the geometric reasoning any manipulation policy must implicitly
-perform, and the per-item variation in success rate in \refChap{chap:results} tracks
-them closely.
+That taxonomy places this thesis precisely. The scripted expert is analytic: it uses
+inverse kinematics to reach a hand-specified top-down grasp pose, reliable because
+object models and poses are known in simulation. The learned policy is closed-loop
+visuomotor and must infer a grasp from images alone, which is why its grasp success rate
+(92.5\%) measures learned competence rather than scripted precision. It performs no
+explicit grasp detection, has no notion of force closure, and never represents a grasp
+pose as such; whether it genuinely localises the target is what
+\refsec{sec:results-lookup} tests.
+
+Two practical considerations shape the design. A two-finger parallel gripper constrains
+object geometry: wide or smooth objects slip, which is why the cereal box is excluded
+and the water bottle needs a higher grip point (\refChap{chap:methodology}). And the
+\emph{approach direction} matters: a top-down grasp followed by frontal extraction was
+adopted because the shelf bay is enclosed from above. The per-item variation in success
+rate in \refChap{chap:results} tracks both closely.
+
+\section{Mobile manipulation}
+\label{sec:bg-mobile}
+The embodiment here is a mobile manipulator: an arm carried on a wheeled base. The
+literature divides into two approaches. \emph{Decoupled} systems treat navigation and
+manipulation separately and sequence them --- drive, park, then pick. \emph{Whole-body}
+systems control base and arm jointly, so base motion extends the arm's effective
+workspace during the reach. Mobile ALOHA exemplifies the whole-body approach for
+imitation learning, collecting demonstrations in which base and arms move together and
+showing that co-training with static bimanual data substantially improves the mobile
+policy \parencite{fu2024mobilealoha}.
+
+The benchmark literature reflects the same split. HomeRobot poses open-vocabulary mobile
+manipulation as an explicit challenge and documents that the bottleneck is usually the
+\emph{composition} of navigation and manipulation rather than either alone
+\parencite{yenamandra2023homerobot}. TidyBot addresses the complementary problem of
+deciding \emph{what} to do, using a language model to infer tidying preferences
+\parencite{wu2023tidybot}. RoboCasa likewise places a mobile-base robot in cluttered
+household scenes \parencite{nasiriany2024robocasa}.
+
+This thesis takes the decoupled position and studies only the manipulation half: the
+base carries the arm and basket and is modelled with its own velocity actuators, but is
+held stationary during each pick. Two justifications apply. The research questions
+concern language-conditioned grasping under a hardware constraint, and adding base
+motion would confound the manipulation result with a navigation result. And holding the
+base fixed keeps object--camera geometry constant across episodes, which is necessary
+for the displacement experiments of \refsec{sec:results-lookup} to be interpretable. The
+cost --- that this is a component of a mobile manipulation system rather than a complete
+one --- is stated in \refChap{chap:discussion}, and navigation is set out as future work
+in \refsec{sec:future}.
 
 \section{Language grounding for manipulation}
 \label{sec:bg-lang}
 For a policy to act on ``pick up the milk carton'', it must \emph{ground} the words
-in the visual scene --- associating the token ``milk'' with the corresponding pixels
-and, ultimately, with a motor goal. In VLAs this grounding is inherited from the
-pretrained vision--language backbone, which has learned joint image--text
-representations at scale, rather than being learned from the (small) robot dataset.
-This is the mechanism that allows a language-conditioned policy to select the correct
-object among distractors and to respond to paraphrases it never saw verbatim. A
-central empirical question for any such system, however, is whether the language is
-genuinely used or whether the policy has instead latched onto a spurious correlate
-(for example, always reaching to a fixed location). \refsec{sec:results-language}
-addresses this directly with a controlled test in which only the instruction is
-varied, and finds that the reach follows the named item --- evidence of genuine
-grounding rather than a memorised trajectory. The fragility of language conditioning
-noted by \textcite{kiviranta2025smolvla}, where instruction following functioned more
-as a proof of concept, makes this verification particularly important to report
-carefully rather than to assume.
+in the visual scene. The dominant mechanism is a jointly trained image--text
+representation: CLIP established that contrastive pretraining on web-scale
+image--caption pairs yields embeddings in which visual and linguistic concepts align
+\parencite{radford2021clip}. CLIPort attached such a representation to a manipulation
+head \parencite{shridhar2021cliport}; VIMA generalised the interface to multimodal
+prompts \parencite{jiang2023vima}; and SayCan \parencite{ahn2022saycan} and Code as
+Policies \parencite{liang2023codeaspolicies} used language models to compose skills or
+synthesise control programs. In VLAs this grounding is inherited from the pretrained
+backbone rather than learned from the small robot dataset, which is what allows a
+policy to select the correct object among distractors and respond to unseen paraphrases.
 
-\section{Simulation and benchmarks}
-\label{sec:bg-sim}
-Real-robot data collection is slow, risky and supervision-heavy, so simulation
-offers a scalable, safe substitute for benchmarking manipulation policies before
-they reach hardware. RoboCasa and RoboCasa365 are large-scale MuJoCo/robosuite
-simulation frameworks for training generalist robots on hundreds of household
-tasks across thousands of kitchen scenes, arguing that simulation is the practical
-way to obtain large, diverse robot datasets \parencite{nasiriany2024robocasa,
-nasiriany2026robocasa365}. RoboCasa's reference results use large foundation
-policies. The preliminary study in this thesis uses RoboCasa as a stress test of
-whether \emph{small}, deployable models can perform its kitchen tasks after
-task-specific fine-tuning (\refsec{sec:results-journey}); the negative result there motivates
-the controlled supermarket task built in MuJoCo for the remainder of the work.
-RoboCasa is demanding for a small model for several compounding reasons: the object
-inventory is large and varied, the kitchen scenes are cluttered and visually complex,
-the tasks require reasoning about containment (placing \emph{into} a cabinet), and the
-reference results are set by a foundation model pretrained on data close to that
-distribution. A compact policy fine-tuned from a limited budget must overcome all of
-these at once, which is why the sensible response is to reduce the task's difficulty
-along each of these axes --- fewer, rigid objects; an uncluttered scene; a simple
-open-basket target --- and to establish competence there before reintroducing
-complexity. This is the strategy the remainder of the thesis follows. The
-same physics-engine family (MuJoCo, via robosuite assets) underpins the custom
-environment described in \refChap{chap:methodology} \parencite{todorov2012mujoco}.
+A central empirical question, however, is whether the language is genuinely used or
+whether the policy has latched onto a spurious correlate. This is an instance of what
+\textcite{geirhos2020shortcut} term \emph{shortcut learning}: a network trained on data
+in which two features are confounded learns whichever is easier to extract, and appears
+to have acquired the intended capability until the confound is broken by a test the
+training data did not contain. Here the confound is between an object's \emph{identity}
+and its \emph{location}: if each named object always appears in the same place, then
+``reach where the milk is'' and ``reach to $y=-0.26$ when you hear milk'' fit the
+demonstrations identically, and the latter is far simpler to learn. Separating them
+requires an intervention that decouples the two --- a stronger test than the
+instruction-swapping usually reported.
 
-The value of simulation is tempered by the \emph{reality gap}: policies trained in
-simulation can exploit rendering artefacts, idealised physics or exact object poses
-that do not hold on hardware, and so transfer poorly. The dominant mitigation is
-\emph{domain randomisation} \parencite{tobin2017domainrand} --- varying textures,
-lighting, camera placement, object poses and physical parameters during training so
-that the real world appears to the policy as just another variation of the training
-distribution. For a VLA there is an
-additional, subtler gap: the pretrained vision backbone was trained largely on real
-photographs, so synthetic renders are themselves mildly out-of-distribution for it.
-Freezing the backbone (\refChap{chap:methodology}) preserves its real-image prior but
-cannot adapt it to the synthetic style; a light-weight adaptation such as low-rank
-tuning of the vision layers \parencite{hu2022lora} is a plausible middle path,
-discussed as future work.
-This thesis does not claim sim-to-real transfer and does not employ domain
-randomisation, as its aim is to characterise a policy under a controlled,
-reproducible simulated task; the pipeline is nonetheless built on the same tooling
-(LeRobot, real hardware models) that a subsequent real-robot study would use.
+\refsec{sec:results-language} performs the weaker test, holding the scene constant and
+varying only the instruction, and finds the reach follows the named item.
+\refsec{sec:results-lookup} performs the stronger one, moving items to positions never
+used in training, and finds the policy reaches where the item \emph{was} rather than
+where it \emph{is}. That the weaker test passes while the stronger fails is exactly the
+pattern \textcite{geirhos2020shortcut} describe, which is why both are reported. The
+fragility of language conditioning noted by \textcite{kiviranta2025smolvla} makes this
+verification important to report rather than assume.
 
 \section{The importance of data and metrics}
 \label{sec:bg-data}
-A recurring theme in the recent literature is that \emph{data diversity and
-evaluation quality} can matter as much as, or more than, model architecture.
-$\pi_{0.5}$ attributes its generalisation to data diversity and hierarchical
-structure rather than action-model scale \parencite{black2025pi05}; RoboAgent
-multiplies a small dataset through semantic augmentation rather than collecting
-more data, arguing that data efficiency and diversity outweigh raw dataset size
-\parencite{bharadhwaj2024roboagent}. This thesis provides complementary,
-first-hand evidence for the same conclusion: as \refChap{chap:results} shows,
-fixing the success metric and improving demonstration variety produced larger
-gains than model choice at this scale.
+A recurring theme is that \emph{data diversity and evaluation quality} can matter as
+much as architecture. $\pi_{0.5}$ attributes its generalisation to data diversity rather
+than action-model scale \parencite{black2025pi05}; RoboAgent multiplies a small dataset
+through semantic augmentation rather than collecting more \parencite{bharadhwaj2024roboagent};
+and \textcite{mandlekar2021robomimic} find dataset composition dominating algorithm
+choice.
+
+The most directly relevant result is that of \textcite{lin2025datascaling}, who measure
+how imitation performance scales along two axes --- the number of \emph{environments and
+objects} seen, and the number of demonstrations per environment --- and find
+generalisation governed principally by the former. Adding more demonstrations of the
+same object in the same place yields rapidly diminishing returns, whereas adding new
+objects and placements continues to pay. This is a precise statement of the failure mode
+this thesis encounters: the demonstrations used here cover four items at four fixed
+positions, so along the axis that drives generalisation the dataset has an effective
+size of four. The recall-rather-than-perception finding of \refsec{sec:results-lookup}
+is, on this reading, a predicted consequence of the data design rather than a deficiency
+of the model.
+
+The community's response at scale has been to pool data across institutions and
+embodiments --- BridgeData V2 \parencite{walke2023bridgedata}, Open X-Embodiment
+\parencite{padalkar2024openx} and DROID \parencite{khazatsky2024droid} --- and to show
+that policies trained on the pool outperform those trained on any one contributor's
+data. For a project working with a few hundred self-generated simulated demonstrations
+that route is unavailable, which makes the composition of the small dataset that
+\emph{is} collected correspondingly more consequential.
 
 \section{Flow-matching action generation}
 \label{sec:bg-flow}
-The action expert in SmolVLA, like that in $\pi_{0}$/$\pi_{0.5}$, is a
-\emph{flow-matching} model rather than a discrete token predictor as in RT-2
-\cite{black2025pi05, shukor2025smolvla, zitkovich2023rt2}. Flow matching
-\parencite{lipman2023flowmatching} learns a continuous velocity field that transports
-a simple noise distribution to the data distribution; at inference the field is
-integrated over a small number of steps to sample an output (ten steps in the
-configuration used here). For action generation this has two consequences relevant to this
-thesis. First, actions are produced as continuous values, which suits smooth
-manipulation better than the coarse, autoregressive token decoding of
-text-token VLAs. Second, sampling is \emph{stochastic}: repeated queries on the
-same observation yield slightly different action chunks, so a policy's success rate
-is inherently a distribution rather than a fixed value. This directly motivates the
-evaluation protocol adopted in \refChap{chap:methodology}, which reports success
-over many trials with confidence intervals rather than from single rollouts.
+The action expert in SmolVLA, like that in $\pi_{0}/\pi_{0.5}$, is a
+\emph{flow-matching} model rather than a discrete token predictor
+\parencite{black2024pi0, black2025pi05, shukor2025smolvla, zitkovich2023rt2}. Flow
+matching \parencite{lipman2023flowmatching} learns a continuous velocity field that
+transports a simple noise distribution to the data distribution; at inference the field
+is integrated over a small number of steps (ten in the configuration used here). It is
+closely related to denoising diffusion \parencite{chi2023diffusionpolicy} but is
+formulated as regression onto a velocity along a straight probability path, typically
+requiring fewer integration steps --- a material advantage for a controller running at
+\SI{20}{Hz}.
+
+Two consequences matter here. Actions are continuous and the full multimodal
+distribution is represented rather than collapsed, which suits smooth manipulation and
+avoids the mode-averaging failure of regression objectives (\refsec{sec:bg-il}). And
+sampling is \emph{stochastic}: repeated queries on the same observation yield slightly
+different chunks, so success is inherently a distribution rather than a fixed value.
+This directly motivates the evaluation protocol of \refChap{chap:methodology}, which
+reports success over many trials with confidence intervals.
+
+\section{Simulation and benchmarks}
+\label{sec:bg-sim}
+Real-robot data collection is slow, risky and supervision-heavy, so simulation offers a
+scalable, safe substitute. A mature benchmark ecosystem exists: Meta-World for
+multi-task and meta-learning \parencite{yu2019metaworld}, RLBench for a large suite of
+demonstration-backed tasks \parencite{james2020rlbench}, CALVIN for long-horizon
+\emph{language-conditioned} manipulation \parencite{mees2022calvin}, and LIBERO for
+lifelong learning and knowledge transfer \parencite{liu2023libero}. RoboCasa and
+RoboCasa365 are large-scale MuJoCo/robosuite frameworks covering hundreds of household
+tasks across thousands of kitchen scenes \parencite{nasiriany2024robocasa,
+nasiriany2026robocasa365}.
+
+RoboCasa's reference results use large foundation policies. The preliminary study here
+uses it as a stress test of whether \emph{small}, deployable models can perform its
+kitchen tasks after task-specific fine-tuning (\refsec{sec:results-journey}); the
+negative result motivates the controlled supermarket task. RoboCasa is demanding for a
+small model for several compounding reasons: a large and varied object inventory,
+cluttered and visually complex scenes, containment reasoning (placing \emph{into} a
+cabinet), and a reference set by a foundation model pretrained on a near-identical
+distribution. A compact policy must overcome all of these at once, which is why the
+sensible response is to reduce difficulty along each axis --- fewer, rigid objects; an
+uncluttered scene; a simple open-basket target --- and establish competence there
+before reintroducing complexity. The same physics-engine family underpins the custom
+environment of \refChap{chap:methodology} \parencite{todorov2012mujoco, zhu2020robosuite}.
+
+The value of simulation is tempered by the \emph{reality gap}: policies can exploit
+rendering artefacts, idealised physics or exact object poses that do not hold on
+hardware \parencite{zhao2020sim2real}. The dominant mitigation is \emph{domain
+randomisation} \parencite{tobin2017domainrand} --- varying textures, lighting, camera
+placement and physical parameters so the real world appears as just another variation of
+the training distribution. For a VLA there is a subtler gap: the pretrained vision
+backbone was trained largely on real photographs, so synthetic renders are themselves
+mildly out-of-distribution. Freezing the backbone preserves its real-image prior but
+cannot adapt it to the synthetic style; low-rank tuning of the vision layers
+\parencite{hu2022lora} is a plausible middle path, discussed as future work. This thesis
+does not claim sim-to-real transfer and does not employ domain randomisation, as its aim
+is to characterise a policy under a controlled, reproducible task; the pipeline is
+nonetheless built on the same tooling a real-robot study would use.
+
+The converse direction is also studied: SIMPLER shows a carefully built simulator can be
+used to \emph{evaluate} policies trained on real data, with rankings correlating well
+with real-world performance \parencite{li2024simpler} --- though that correlation is
+established for one simulator-and-task pairing and cannot simply be assumed here.
 
 \section{Evaluation of manipulation policies}
 \label{sec:bg-eval}
-A recurring methodological hazard in imitation-learning robotics is optimistic or
-under-powered evaluation. Because closed-loop rollouts are expensive, results are
-often reported over a handful of trials and without confidence intervals, and
-success is sometimes measured by a proxy (such as proximity to a goal) rather than
-by task completion. Kiviranta reports that a naively defined success metric and
+A recurring hazard in imitation-learning robotics is optimistic or under-powered
+evaluation. Because closed-loop rollouts are expensive, results are often reported over
+a handful of trials without confidence intervals, and success is sometimes measured by a
+proxy rather than by task completion. The problem is not unique to robotics:
+\textcite{henderson2018matters} showed deep reinforcement-learning results were routinely
+reported in ways that did not survive replication, and \textcite{agarwal2021precipice}
+showed that with typical run counts, point estimates are dominated by sampling noise and
+interval estimates are essential rather than decorative.
+
+\subsection{Proxy metrics.} Kiviranta reports that a naively defined success metric and
 insufficiently varied data inflate SmolVLA's apparent performance
-\cite{kiviranta2025smolvla}, and the same effect is documented first-hand in the
-pilot study of this thesis (\refsec{sec:results-journey}), where a proximity-based
-metric overstated a real 40\% as 80\%. A second hazard is \emph{checkpoint
-selection}: training loss and even validation loss continue to fall while
-closed-loop task performance may plateau or regress, so selecting a checkpoint by
-loss can deploy a worse policy than an earlier snapshot. The evaluation methodology
-in this thesis --- adequate sample sizes, Wilson intervals, a task-completion metric
-that verifies actual placement, and checkpoint selection by closed-loop success ---
-is designed to avoid these hazards, and \refsec{sec:results-checkpoint} demonstrates
-the checkpoint effect empirically.
+\parencite{kiviranta2025smolvla}, and the same effect is documented first-hand in the
+pilot study (\refsec{sec:results-journey}), where a proximity-based metric overstated a
+real 40\% as 80\%. This thesis therefore defines task completion geometrically and
+verifies it physically, using the identical criterion at data-collection and evaluation
+time.
+
+\subsection{Under-powered samples and interval estimation.} A success rate is a binomial
+proportion, and the normal-approximation interval behaves badly for small $n$ and for
+proportions near zero or one --- it can extend outside $[0,1]$ and its coverage
+oscillates below the nominal level. \textcite{brown2001binomial} recommend the Wilson
+score interval \parencite{wilson1927ci} for exactly this regime. Where two policies or
+checkpoints are compared on the \emph{same} trial seeds, the observations are paired and
+McNemar's test \parencite{mcnemar1947test} applies rather than a two-sample test; with
+several comparisons, Holm's correction \parencite{holm1979correction} controls the
+family-wise error rate without Bonferroni's conservatism.
+
+\subsection{Checkpoint selection.} Training and even validation loss continue to fall
+while closed-loop performance may plateau or regress, so selecting by loss can deploy a
+worse policy than an earlier snapshot. The methodology here --- adequate samples, Wilson
+intervals, a verified task-completion metric, and selection by closed-loop success ---
+is designed to avoid these hazards, and \refsec{sec:results-checkpoint} demonstrates the
+effect empirically.
 
 \section{Research gap and positioning}
 \label{sec:bg-gap}
-The literature establishes that (i) VLAs can transfer web-scale knowledge into
-control \cite{zitkovich2023rt2}, (ii) large VLAs generalise to open-world settings
-given diverse data \cite{black2025pi05}, and (iii) compact VLAs such as SmolVLA can
-be fine-tuned for individual tasks on affordable hardware
-\cite{shukor2025smolvla, kiviranta2025smolvla}. What is comparatively
-under-reported is a \emph{rigorously evaluated}, end-to-end account of what a
-compact VLA can and cannot do under a hard, single-consumer-GPU constraint on a
-language-conditioned manipulation task --- including an honest failure analysis and a
-disciplined evaluation protocol. This thesis addresses that gap: it fixes the
-hardware budget at \SI{12}{GB}, fine-tunes SmolVLA on a controlled supermarket
-task, and reports closed-loop success with confidence intervals, a failure
-diagnosis, and a language-grounding test. In doing so it also contributes a
-first-hand data point --- consistent with $\pi_{0.5}$ and RoboAgent
-\cite{black2025pi05, bharadhwaj2024roboagent} --- that at this data and hardware
-scale, evaluation quality and data variety dominate model choice.
+The literature establishes that VLAs can transfer web-scale knowledge into control
+\parencite{zitkovich2023rt2, brohan2023rt1}; that large VLAs generalise given diverse
+data \parencite{black2025pi05, padalkar2024openx}; that compact VLAs can be fine-tuned
+on affordable hardware \parencite{shukor2025smolvla, kiviranta2025smolvla,
+wen2025tinyvla}; and that at small data scales, dataset composition and evaluation
+protocol frequently dominate architecture \parencite{mandlekar2021robomimic,
+lin2025datascaling}. Three gaps follow.
+
+\subsection{An end-to-end account under an explicit hardware ceiling.}
+Efficiency-focused VLA papers report that their models are cheap to train, but the
+constraint is presented as a property of the model rather than the governing constraint
+of the study. Under-reported is a rigorously evaluated, end-to-end account of what a
+compact VLA can and cannot do when a single-consumer-GPU budget is fixed in advance and
+every design decision --- cameras, trainable parameters, image resolution --- must be
+made inside it.
+
+\subsection{Testing grounding rather than asserting it.} Language-conditioned policies
+are commonly demonstrated by changing the instruction and observing that behaviour
+changes. That test cannot distinguish visual grounding from a memorised word-to-location
+association, and the shortcut-learning literature \parencite{geirhos2020shortcut}
+predicts the latter will be preferred whenever the data permit. Controlled displacement
+tests that break the confound are rare, and this thesis reports one over 216 trials.
+
+\subsection{A same-task capacity control.} Claims that a VLA outperforms a smaller
+policy are usually made across tasks or papers. Training a non-language policy a
+fraction the size on the \emph{identical} dataset, cameras, action space and protocol
+isolates what the extra capacity and the language pathway actually buy.
+\refsec{sec:results-act} reports such a control, and the answer --- selection rather
+than motor competence --- is more specific than the literature usually supports.
+
+Addressing these, the thesis fixes the budget at \SI{12}{GB}, fine-tunes SmolVLA on a
+controlled supermarket task, and reports closed-loop success with confidence intervals,
+a failure diagnosis, a displacement-based grounding test and a same-task capacity
+control. It thereby contributes a first-hand data point --- consistent with $\pi_{0.5}$,
+RoboAgent and the data-scaling literature \parencite{black2025pi05,
+bharadhwaj2024roboagent, lin2025datascaling} --- that at this scale, evaluation quality
+and data variety dominate model choice.
+
+\section{Summary}
+\label{sec:bg-summary}
+Four points carry into the chapters that follow. A VLA is a pretrained
+vision--language backbone with an action head, and only its compact members can be
+fine-tuned within \SI{12}{GB}, which fixes the model choice. Behaviour cloning from a
+scripted expert is subject to covariate shift and to whatever confounds the
+demonstration set contains, and action chunking mitigates the first but not the second.
+Apparent language grounding may be shortcut learning unless the identity--location
+confound is broken by explicit intervention, which dictates the design of
+\refsec{sec:results-lookup}. And closed-loop success is a binomial proportion estimated
+from expensive trials, so adequate samples, Wilson intervals and paired tests are
+requirements rather than refinements. \refChap{chap:methodology} builds the pipeline and
+the experimental design on these four foundations.

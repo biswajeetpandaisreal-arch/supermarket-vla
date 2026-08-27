@@ -5,7 +5,7 @@
 \label{sec:results-journey}
 The project began as a study of whether deployable models could perform the
 RoboCasa kitchen benchmark \parencite{nasiriany2024robocasa}, whose reference
-policy is a large foundation model (GR00T~N1.6, \cite{nvidia2025gr00t}). GR00T is
+policy is a large foundation model (GR00T~N1.6, \parencite{nvidia2025gr00t}). GR00T is
 powerful --- it reached approximately 54\% zero-shot on the tested tasks --- but at
 several billion parameters it cannot be fine-tuned or deployed within a 12~GB GPU.
 Two deployable small models (SmolVLA and ACT) were therefore fine-tuned on RoboCasa
@@ -68,7 +68,7 @@ the lessons scale to the supermarket task. Success rate rises 0\% $\rightarrow$
 $\sim$53\% $\rightarrow$ 80\%. These three rates are \emph{not} directly comparable:
 task difficulty decreases from left to right, and the three stages differ in
 benchmark, robot and embodiment. The supermarket figure is additionally measured at a
-fixed object pose; under the \SI{2}{cm} jitter of \refsec{sec:results-robustness} it
+fixed object pose; under the \SI{2.5}{cm} jitter of \refsec{sec:results-robustness} it
 is 58.8\%.}
 \label{fig:journey}
 \end{figure}
@@ -103,7 +103,7 @@ qualifies this number and is examined directly in \refsec{sec:results-robustness
 Each trial resets the simulator to a fixed state, so within a given item every trial
 begins from an \emph{identical} object pose; what varies between trials is the
 instruction paraphrase and the stochasticity of the policy's own flow-matching
-sampler. The \SI{2}{cm} per-episode positional jitter described in
+sampler. The \SI{2.5}{cm} per-episode positional jitter described in
 \refsec{sec:m-data} is applied when \emph{collecting} demonstrations, not when
 evaluating them. The 80\% figure is therefore a success rate at a fixed object pose.
 \refsec{sec:results-robustness} re-runs the entire evaluation with that same jitter
@@ -111,7 +111,7 @@ applied at test time and reports the resulting degradation, which is substantial
 
 This figure should be read against two reference points. Kiviranta reports an 80\%
 single-task success rate fine-tuning the same SmolVLA checkpoint on real SO-101
-hardware from around 100 demonstrations \cite{kiviranta2025smolvla}, so the result
+hardware from around 100 demonstrations \parencite{kiviranta2025smolvla}, so the result
 here is in the same regime as an independent study on real hardware, obtained under a
 strict 12~GB budget and with a language-conditioned choice among four items rather
 than a single fixed task. The second reference point is internal: the same family of
@@ -369,10 +369,7 @@ the ACT baseline of \refsec{sec:results-act} achieves. But the mechanism is reca
 perception, and the distinction matters for any claim about generalisation.
 
 \begin{table}[ht]
-\caption{Displacement test at the 15k checkpoint ($n=12$ per condition). ``Reached
-$y$'' is the gripper's lateral position when it closes. Under every displacement the
-policy reaches the position the item occupied \emph{in training}, not the position it
-actually occupies.}
+\caption{Displacement test at the 15k checkpoint ($n=12$ per condition).}
 \begin{center}
 \tagpdfsetup{table/header-rows={1}}
 \begin{tabular}{llccc}
@@ -407,7 +404,7 @@ Displaced & bread loaf   & $+0.22$ & $+0.002$ & 0/12 \\
 is not exactly where it was demonstrated, even by a small amount. This section measures
 that directly, and in doing so qualifies the headline result.
 
-The demonstrations were collected with a per-episode positional jitter of \SI{2}{cm}
+The demonstrations were collected with a per-episode positional jitter of \SI{2.5}{cm}
 in $x$ and $y$ (\refsec{sec:m-data}), so the policy was trained on a distribution of
 object poses rather than on one pose. The evaluation, however, resets the simulator to
 a fixed state, so all reported trials so far place each item at its nominal position.
@@ -425,11 +422,11 @@ isolating object pose as the operative variable.
 
 Two points follow. First, the honest statement of this thesis's headline result is
 that the policy completes the task 80\% of the time at the object pose it was
-evaluated on, and 58.8\% of the time when the object is displaced by up to \SI{2}{cm}
---- a displacement small enough that a human would not notice it, and one the policy
-saw throughout training. Second, the magnitude of the drop is itself evidence for
+evaluated on, and 58.8\% of the time when the object is displaced by up to \SI{2.5}{cm}
+--- a displacement a person reaching for the same item would think nothing of, and one
+the policy saw throughout training. Second, the magnitude of the drop is itself evidence for
 \refsec{sec:results-lookup}: a policy that localised its target visually would be
-largely indifferent to a \SI{2}{cm} offset, whereas a policy executing a memorised
+largely indifferent to a \SI{2.5}{cm} offset, whereas a policy executing a memorised
 reach degrades exactly as observed. It is worth noting that the scripted expert, which
 re-solves its grasp inverse kinematics on the settled object position, achieves
 96--100\% per item under the same jitter; the information required to succeed is
@@ -438,7 +435,7 @@ present in the scene, and the learned policy does not use it.
 \begin{table}[ht]
 \caption{Task completion under the two evaluation protocols ($n=80$ per checkpoint).
 ``Fixed pose'' is the protocol used throughout the rest of this chapter; ``jittered''
-applies the same \SI{2}{cm} positional jitter used to collect the training data.}
+applies the same \SI{2.5}{cm} positional jitter used to collect the training data.}
 \begin{center}
 \tagpdfsetup{table/header-rows={1}}
 \begin{tabular}{lcccc}
@@ -596,7 +593,7 @@ Change 15k$\rightarrow$20k & $-1$ & $\mathbf{-7}$ & $+4$ & $0$ & $-4$ \\
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=0.8\textwidth,
-    alt={A line chart of task-completion rate versus training step: 69 percent at 5k and 10k, 80 percent at 15k, 75 percent at 20k. Wilson confidence-interval error bars span roughly ten points either side of each value and overlap across all four checkpoints.}]{figures/checkpoint_selection}
+    alt={A line chart of task-completion rate versus training step, peaking at the 15k checkpoint (80 percent) and dipping at 20k (75 percent), with confidence-interval error bars.}]{figures/checkpoint_selection}
 \end{center}
 \caption{Task-completion rate versus training checkpoint, selected by closed-loop
 success rather than loss. The 15k checkpoint attains the highest rate; the
@@ -669,7 +666,7 @@ consistent with \refsec{sec:results-lookup} is that each pick disturbs the remai
 items on the shelf --- the gripper brushes neighbours during extraction --- and a policy
 that reaches a memorised position rather than a perceived one fails as soon as its
 target has shifted, exactly as it does under the deliberate displacement of
-\refsec{sec:results-lookup} and the \SI{2}{cm} jitter of
+\refsec{sec:results-lookup} and the \SI{2.5}{cm} jitter of
 \refsec{sec:results-robustness}. Testing this would require logging the poses of the
 \emph{remaining} items after each pick, which these runs did not capture, and is left
 as future work. The menu interface and the retry-on-miss behaviour mitigate the
@@ -731,13 +728,13 @@ the others, that instruction-following is implemented by \emph{recall rather tha
 perception}: the policy maps each item word to a memorised trajectory and does not
 localise the named object visually (\refsec{sec:results-lookup}). This last finding
 explains what the others leave unexplained --- why performance falls to 58.8\% under a
-\SI{2}{cm} object displacement (\refsec{sec:results-robustness}), and why a
+\SI{2.5}{cm} object displacement (\refsec{sec:results-robustness}), and why a
 52-million-parameter policy with no language input at all matches the VLA's
 manipulation quality on a single item (\refsec{sec:results-act}).
 
 Read against the research questions of \refsec{sec:rqs}, the chapter answers each in
 turn. RQ1 (feasibility) is answered affirmatively but with a stated bound: 80\% at a
-fixed object pose, 58.8\% under the \SI{2}{cm} jitter the training data itself
+fixed object pose, 58.8\% under the \SI{2.5}{cm} jitter the training data itself
 contained, under a strict 12~GB budget. RQ2 (model versus methodology) is answered by
 three pieces of evidence, one of them new: the pilot, where fixing the metric and the
 data --- not the model --- moved real performance from an apparent 80\% to a real 40\%

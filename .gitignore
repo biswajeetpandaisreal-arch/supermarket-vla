@@ -12,7 +12,8 @@ venv/
 outputs/train/
 collected_data/
 data/
-thesis.zip
+*.zip
+!thesis_overleaf_v2.zip
 *.pkl
 *.safetensors
 *.mp4
