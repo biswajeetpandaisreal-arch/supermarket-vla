@@ -6,6 +6,11 @@ it in an onboard basket, and delivers the collected list — driven by **two
 vision-language-action (VLA) models**: one for **manipulation**, one for
 **navigation**. Built in **MuJoCo**, trained locally on a **12 GB GPU**.
 
+![The simulated supermarket workspace: a UR10e arm and Robotiq gripper on an Omron LD-60 mobile base, facing a stocked shelf, with the blue collection tote mounted on the base deck.](thesis/figures/image.jpeg)
+
+*The workspace: UR10e + Robotiq 2F-85 on an Omron LD-60 base, a stocked shelf of
+textured grocery meshes, and the onboard tote that items are placed into.*
+
 > This README is the poster-building reference. Companion docs:
 > `notes/PLAN.md` (roadmap), `notes/DECISIONS.md` (chronological decisions), `notes/REPORT_NOTES.md`
 > (full write-up notes).
@@ -44,13 +49,33 @@ current work closes the **placing** gap.
 *Custom-built scene* (not RoboCasa — that didn't suit local SmolVLA and is
 kitchen-only). Store aisle: stocked metal shelf + facing gondola + tile floor.
 
+![Three camera views: a wrist eye-in-hand view of the gripper, a shelf-facing scene view, and a dedicated view of the drop-target basket.](thesis/figures/camera_views.png)
+
+*Everything the policy sees, every step: three 96×96 RGB streams plus the 7-D arm
+state and the text instruction. **No object coordinates and no segmentation** are
+provided — any localisation has to come from pixels.*
+
 ## 3. Method (manipulation pipeline)
 ```
 Scripted expert  →  demos (LeRobot)  →  SmolVLA fine-tune  →  closed-loop rollout
 ```
+
+![Four-stage pipeline: scripted expert with mink inverse kinematics producing 240 collected and 208 training demonstrations, a LeRobot dataset of three cameras plus state plus instruction, SmolVLA fine-tuning with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.](thesis/figures/fig_pipeline.png)
+
 1. **Scripted expert** — top-down grasp via **mink** IK (MuJoCo-native), frontal
    extraction out of the shelf, carry, place. Per-item grasp tuning (yaw, height,
    position). Expert success ≥ 96–100% per item.
+
+   ![Ten key frames of the scripted pick-and-place: home, pre-grasp, grasp, close, lift, extract, approach, at-basket, release, placed.](thesis/figures/pickplace_cola_can.png)
+
+   *The ten phases of one scripted demonstration. The shelf bay is enclosed from
+   above, so the item is pulled **frontally** out of the shelf at grasp height rather
+   than lifted straight up.*
+
+   ![Close-up of the Robotiq two-finger gripper descending on a product beside a cereal box on the shelf.](outputs/poster/grasp_closeup.png)
+
+   *Why the cereal box is excluded: the two-finger gripper is rigid and the robosuite
+   meshes are smooth, so its wide face slips during transport.*
 2. **Demos** — records wrist+scene+basket images (96×96), 7-DOF state & action, and a
    **language instruction** (6 paraphrase templates × items). Only *successful*
    episodes saved; per-episode position jitter; **episodes end at "placed"** (clean
@@ -63,6 +88,28 @@ Scripted expert  →  demos (LeRobot)  →  SmolVLA fine-tune  →  closed-loop 
 already *sees* and *reads*; we only learn *how this robot acts* → 208 demos suffice.
 
 ## 4. Results
+
+### Final policy (v2, deployed 15k checkpoint)
+> The subsections below are the **v1** history, kept for the diagnosis story. These
+> are the figures that supersede them.
+
+**80% task completion** (95% Wilson CI 70–87) and **92.5% grasp**, over 320
+closed-loop trials across four checkpoints — measured at a **fixed object pose**.
+
+![Bar chart of per-item task completion with Wilson 95% confidence intervals: cola can 95%, water bottle 90%, bread loaf 75%, milk carton 60%, against an overall 80% line.](thesis/figures/per_item_success.png)
+
+![Line chart of task completion against training step: 69% at 5k and 10k, 80% at 15k, 75% at 20k, with overlapping confidence intervals.](thesis/figures/checkpoint_selection.png)
+
+*Checkpoints are selected by **closed-loop success, not loss** — the final checkpoint
+is not the best. At n=80 the four are not statistically distinguishable (McNemar, all
+p ≥ 0.19), so the ranking picks a deployment snapshot rather than claiming
+significance.*
+
+Two caveats the thesis establishes and this README should not hide: under the same
+±2.5 cm jitter the training data itself contained, completion falls to **58.8%**; and
+a displacement test over 216 trials shows the policy reaches where each item **was in
+training**, never where it actually is — the language conditioning is *recall*, not
+visual grounding.
 
 ### First policy (v1)
 - **Grasp: 75%** (9/12). **Place: 0%** (0/12). *(small sample — reported with the
