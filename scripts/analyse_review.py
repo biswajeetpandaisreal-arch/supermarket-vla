@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# v1 tote, from REPORT_NOTES.md:48-50 — half-extents (x, y) and centre x.
+# v1 tote, from notes/REPORT_NOTES.md:48-50 — half-extents (x, y) and centre x.
 V1_HALF, V1_CX = (0.11, 0.10), 0.28
 V2_HALF, V2_CX = (0.15, 0.13), 0.24
 # The published success box is hard-coded in rollout.py:149 and is STRICTER than
