@@ -5,7 +5,7 @@ to see whether it actually completes the pick-and-place (not just that loss fell
 The policy observes wrist + scene cameras, arm state, and the task string, and
 outputs 7-dim actions (6 arm joint targets + gripper) at ~20 Hz, which we apply.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/rollout.py \
+    python scripts/rollout.py \
         --checkpoint outputs/train/smolvla_supermarket/checkpoints/020000/pretrained_model \
         --items cola_can bread_loaf --episodes 2 --capture
 """

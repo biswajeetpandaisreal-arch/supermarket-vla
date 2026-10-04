@@ -4,7 +4,7 @@ make_thesis_figures.py — vector-style schematic figures for the thesis:
   2. fig_nearmiss.png    — side schematic of the 0% placement failure mode (near-miss)
   3. fig_pipeline.png    — experimental pipeline flow (expert -> demos -> train -> eval)
 
-    .venv/bin/python scripts/make_thesis_figures.py   # -> outputs/plots/thesis/*.png
+    python scripts/make_thesis_figures.py   # -> outputs/plots/thesis/*.png
 """
 from pathlib import Path
 import matplotlib

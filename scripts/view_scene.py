@@ -2,8 +2,8 @@
 view_scene.py — open the live interactive MuJoCo viewer to watch the sim.
 
 Run on a machine WITH a display, and do NOT set MUJOCO_GL=egl (that's offscreen):
-    .venv/bin/python scripts/view_scene.py            # robot runs a little demo loop
-    .venv/bin/python scripts/view_scene.py --static   # just hold the pose; orbit with the mouse
+    python scripts/view_scene.py            # robot runs a little demo loop
+    python scripts/view_scene.py --static   # just hold the pose; orbit with the mouse
 
 Mouse: drag to orbit, scroll to zoom, right-drag to pan.
 

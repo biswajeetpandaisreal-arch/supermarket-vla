@@ -17,7 +17,7 @@ at all. These modes separate the two.
 Positions are overridden by mutating envs.supermarket_env.PRODUCTS before the env
 is constructed (the MuJoCo XML is built in __init__), so no defaults are edited.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/exp3_grounding.py \
+    python scripts/exp3_grounding.py \
         --checkpoint outputs/train/smolvla_supermarket_v2/checkpoints/015000/pretrained_model \
         --mode swap --trials 12 --csv outputs/review/exp3_swap.csv
 """

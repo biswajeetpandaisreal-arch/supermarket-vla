@@ -6,8 +6,8 @@ slide-y, hinge-yaw — no wheel contact physics), facing a single supermarket
 shelf stocked with real textured grocery meshes (robosuite's milk/can/bread/
 cereal/bottle objects), with a basket riding on the base platform.
 
-Adapted from the reference pick-and-place env at
-`../smolvla_ur10e/envs/ur10e_env.py` (never modified). The programmatic
+Adapted from the pick-and-place env of my earlier UR10e project
+(github.com/biswajeetpandaisreal-arch/VLA_UR10e). The programmatic
 MJCF-assembly and gripper/wrist-camera injection patterns are reused; the arm is
 reparented under a mobile base and the table/single-cube is replaced by a
 shelf + products.
@@ -19,6 +19,7 @@ Actuator layout (model.ctrl indexing):
 
 Run directly to build the scene and dump basic info.
 """
+import os
 import re
 import importlib.util
 from pathlib import Path
@@ -27,7 +28,17 @@ import numpy as np
 import gymnasium as gym
 import mujoco
 
-MENAGERIE = Path("/home/biswajeet/.cache/robot_descriptions/mujoco_menagerie")
+
+def _menagerie_dir() -> Path:
+    """MuJoCo Menagerie checkout: $MUJOCO_MENAGERIE_DIR if set, otherwise the copy
+    robot_descriptions downloads on first use (~/.cache/robot_descriptions)."""
+    if os.environ.get("MUJOCO_MENAGERIE_DIR"):
+        return Path(os.environ["MUJOCO_MENAGERIE_DIR"])
+    from robot_descriptions import ur10e_mj_description
+    return Path(ur10e_mj_description.PACKAGE_PATH).parent
+
+
+MENAGERIE = _menagerie_dir()
 UR10E_DIR = MENAGERIE / "universal_robots_ur10e"
 GRIPPER_DIR = MENAGERIE / "robotiq_2f85"
 

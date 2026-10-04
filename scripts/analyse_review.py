@@ -8,7 +8,7 @@ Consumes the per-trial CSV written by eval_checkpoints.py --csv and produces:
   * McNemar exact tests between checkpoints (trials are paired)      (EXP-2)
   * re-scoring against the v1 narrow basket                          (EXP-4)
 
-    .venv/bin/python scripts/analyse_review.py outputs/review/exp1_instrumented_jitter.csv
+    python scripts/analyse_review.py outputs/review/exp1_instrumented_jitter.csv
 """
 import sys
 import math

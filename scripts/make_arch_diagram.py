@@ -3,7 +3,7 @@ make_arch_diagram.py — SmolVLA architecture block diagram for the presentation
 (Slide 3). Inputs -> frozen VLM backbone -> trained action expert -> action chunk
 -> robot, with a closed-loop "re-plan" arrow.
 
-    .venv/bin/python scripts/make_arch_diagram.py   # -> outputs/plots/smolvla_architecture.png
+    python scripts/make_arch_diagram.py   # -> outputs/plots/smolvla_architecture.png
 """
 from pathlib import Path
 

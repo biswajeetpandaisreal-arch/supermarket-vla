@@ -2,7 +2,7 @@
 make_camera_views.py — render the THREE camera views the policy sees (wrist, scene,
 basket) at a representative moment, tiled side by side with labels. For the slides.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/make_camera_views.py   # -> outputs/plots/camera_views.png
+    python scripts/make_camera_views.py   # -> outputs/plots/camera_views.png
 """
 import sys
 from pathlib import Path

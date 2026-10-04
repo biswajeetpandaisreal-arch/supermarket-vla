@@ -8,7 +8,7 @@ Checks, in order:
   4. Drives the base +/-0.5 m in x and y and +/-45 deg in yaw; confirms it moves.
   5. Steps physics 5 s; confirms no NaN and products stay on their shelf.
 
-Run:  MUJOCO_GL=egl python scripts/verify_scene.py
+Run:  python scripts/verify_scene.py   (Linux headless: MUJOCO_GL=egl)
 Saves images to outputs/stage1/.
 """
 import sys

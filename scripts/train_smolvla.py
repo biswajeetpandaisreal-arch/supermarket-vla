@@ -6,7 +6,7 @@ Why: LeRobot's --policy.freeze_vision_encoder / --policy.train_expert_only flags
 can't express this combination, and the full unfrozen VLM (~403M) won't fit 12 GB
 (forces batch_size=2, trains too noisily). Vision-only adapts the visual encoder
 to our MuJoCo render style while fitting a real batch size on an RTX A2000.
-(Adapted from ../smolvla_ur10e/scripts/train_smolvla_vision_unfrozen.py.)
+(Adapted from my earlier VLA_UR10e project.)
 
 Usage: same flags as `python -m lerobot.scripts.lerobot_train`; the freezing logic
 below overrides --policy.freeze_vision_encoder / --policy.train_expert_only.

@@ -3,7 +3,7 @@ make_plots.py — generate the two results figures for the presentation from the
 actual eval counts (outputs/eval_v2_all.log). Wilson 95% CIs computed here, not
 hardcoded.
 
-    .venv/bin/python scripts/make_plots.py   # -> outputs/plots/*.png
+    python scripts/make_plots.py   # -> outputs/plots/*.png
 """
 import math
 from pathlib import Path

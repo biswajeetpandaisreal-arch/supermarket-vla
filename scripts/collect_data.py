@@ -7,9 +7,9 @@ Records, per control step: wrist + scene RGB, 7-dim state (6 arm joints + grippe
 episodes are saved. Per-episode position jitter varies the item placement.
 
     # pilot (a few per item):
-    MUJOCO_GL=egl .venv/bin/python scripts/collect_data.py --n 3
+    python scripts/collect_data.py --n 3
     # full set:
-    MUJOCO_GL=egl .venv/bin/python scripts/collect_data.py --n 80
+    python scripts/collect_data.py --n 80
 """
 import sys
 import argparse

@@ -10,7 +10,7 @@ distribution, since every training demo started from an empty basket).
 Retries are disabled by default so that each position is a single clean Bernoulli
 trial; the retry behaviour is a separate policy on top of that.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/exp5_multiitem.py \
+    python scripts/exp5_multiitem.py \
         --lists 20 --lengths 2 3 --csv outputs/review/exp5_multiitem.csv
 """
 import sys

@@ -1,0 +1,17 @@
+# Core simulation
+mujoco>=3.2
+gymnasium
+numpy
+robosuite            # grocery meshes, textures and the Omron LD-60 base
+robot_descriptions   # downloads MuJoCo Menagerie (UR10e, Robotiq 2F-85)
+mink                 # inverse kinematics for the scripted expert
+
+# Learning (install the PyTorch build for your CUDA version first:
+# https://pytorch.org/get-started/locally/)
+torch
+lerobot[smolvla]
+
+# Analysis and figures
+opencv-python
+pandas
+matplotlib

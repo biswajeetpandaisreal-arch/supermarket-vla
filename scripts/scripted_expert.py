@@ -6,7 +6,7 @@ Trajectory: HOME → PRE_GRASP → descend GRASP → close → lift → transpor
 basket → release → retract. Grasp/place poses come from find_grasp (IK).
 
 Smoke test (one episode, saves a key-frame strip + success verdict):
-    MUJOCO_GL=egl .venv/bin/python scripts/scripted_expert.py --product cola_can
+    python scripts/scripted_expert.py --product cola_can
 """
 import sys
 import time

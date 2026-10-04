@@ -4,7 +4,7 @@ presentation (prior work → this work). Three stages with the real success
 numbers: RoboCasa/GR00T (small models 0%) -> UR10e pilot (~53%) -> Supermarket
 VLA (80%).
 
-    .venv/bin/python scripts/make_journey_diagram.py   # -> outputs/plots/journey_prior_work.png
+    python scripts/make_journey_diagram.py   # -> outputs/plots/journey_prior_work.png
 """
 from pathlib import Path
 

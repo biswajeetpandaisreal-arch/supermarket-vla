@@ -6,7 +6,7 @@ Each frame carries: action (7), observation.state (7), wrist + scene images
 (video), and the per-episode `task` string. Frames are subsampled from the
 100 Hz recording down to `--fps` so action chunks span a useful horizon.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/convert_to_lerobot.py
+    python scripts/convert_to_lerobot.py
 """
 import sys
 import argparse

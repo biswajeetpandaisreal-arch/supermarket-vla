@@ -12,13 +12,13 @@ robot is never asked for something it can't pick.
 This is the Part-A orchestrator: item selection -> a sequence of pick-and-places.)
 
     # interactive: shows the menu and asks what you want
-    MUJOCO_GL=egl .venv/bin/python scripts/shopping_list.py
+    python scripts/shopping_list.py
 
     # non-interactive: give the selection directly (numbers or names)
-    MUJOCO_GL=egl .venv/bin/python scripts/shopping_list.py --list "1 3"
+    python scripts/shopping_list.py --list "1 3"
 
     # watch it live + read the model's plan (needs a display -> no MUJOCO_GL=egl):
-    .venv/bin/python scripts/shopping_list.py --list "milk, cola" --think --view
+    python scripts/shopping_list.py --list "milk, cola" --think --view
 """
 import sys
 import time

@@ -4,16 +4,20 @@ __pycache__/
 *.egg-info/
 .ipynb_checkpoints/
 
-# Virtual environment (symlink to ../smolvla_ur10e/.venv)
+# Virtual environment
 .venv/
 venv/
 
 # Large regenerable artefacts (NOT committed)
+outputs/plots/
+outputs/stage*/
+outputs/poster/
+outputs/eval*/
 outputs/train/
 collected_data/
 data/
 *.zip
-!thesis_overleaf_v2.zip
+*.pptx
 *.pkl
 *.safetensors
 *.mp4

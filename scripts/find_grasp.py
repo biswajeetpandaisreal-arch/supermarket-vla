@@ -7,7 +7,7 @@ the item) with the gripper pointing straight down. Only the arm moves — the AG
 base, gripper joints, and product free-bodies are held fixed via masked
 integration. Used by the scripted expert to pick each product off the shelf.
 
-    MUJOCO_GL=egl .venv/bin/python scripts/find_grasp.py --product cola_can
+    python scripts/find_grasp.py --product cola_can
 """
 import sys
 import argparse

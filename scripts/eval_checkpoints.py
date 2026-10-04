@@ -5,7 +5,7 @@ seed each), tallies grasp and place success, and reports rates with Wilson 95%
 confidence intervals. Checkpoints are ranked by overall PLACE success (the real
 task metric — not training loss).
 
-    MUJOCO_GL=egl .venv/bin/python scripts/eval_checkpoints.py \
+    python scripts/eval_checkpoints.py \
         --run outputs/train/smolvla_supermarket_v2 \
         --checkpoints 005000 010000 015000 020000 \
         --trials 20

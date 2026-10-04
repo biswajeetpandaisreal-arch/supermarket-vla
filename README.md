@@ -1,197 +1,162 @@
-# Supermarket Service Robot — a Two-VLA System in Simulation
+# Supermarket VLA — language-conditioned pick-and-place with a fine-tuned SmolVLA
 
-A mobile manipulator that reads a **text shopping list**, navigates a supermarket
-(eventually one full of moving shoppers), **picks each item off the shelf**, drops
-it in an onboard basket, and delivers the collected list — driven by **two
-vision-language-action (VLA) models**: one for **manipulation**, one for
-**navigation**. Built in **MuJoCo**, trained locally on a **12 GB GPU**.
+MSc Robotics thesis project (Cranfield University, 2026): *Mobile Manipulator Grasping
+of Everyday Objects Using Vision–Language–Action Models*.
 
-![The simulated supermarket workspace: a UR10e arm and Robotiq gripper on an Omron LD-60 mobile base, facing a stocked shelf, with the blue collection tote mounted on the base deck.](thesis/figures/image.jpeg)
+A UR10e arm with a Robotiq 2F-85 gripper, mounted on an Omron LD-60 mobile base in a
+MuJoCo supermarket scene, is told *"pick up the milk and place it in the basket"* and
+does it — driven by **SmolVLA**, a vision-language-action model fine-tuned on a single
+12 GB GPU by freezing its pretrained vision-language backbone and training only the
+action expert.
 
-*The workspace: UR10e + Robotiq 2F-85 on an Omron LD-60 base, a stocked shelf of
-textured grocery meshes, and the onboard tote that items are placed into.*
+![The workspace: UR10e and Robotiq gripper on an Omron LD-60 base, facing a stocked shelf, with the collection tote on the base deck.](thesis/figures/image.jpeg)
 
-> This README is the poster-building reference. Companion docs:
-> `notes/PLAN.md` (roadmap), `notes/DECISIONS.md` (chronological decisions), `notes/REPORT_NOTES.md`
-> (full write-up notes).
-
----
-
-## TL;DR (elevator pitch)
-Give the robot *"pick up the milk and place it in the basket"* and a fine-tuned
-**SmolVLA** policy drives a UR10e arm on an Omron AGV to do exactly that — reading
-the **language** to choose the right item among distractors, using **wrist + scene +
-basket cameras** to act. A scripted expert generates demos; SmolVLA is fine-tuned on
-a **12 GB** GPU by keeping its pretrained perception **frozen** and learning only the
-**action mapping**. First policy already **grasps and grounds language correctly**;
-current work closes the **placing** gap.
+The policy sees only pixels and joint states — three 96 × 96 RGB cameras (wrist,
+shelf-facing scene, basket), the 7-D arm state and the text instruction. No object
+coordinates or segmentation are given to it.
 
 ---
 
-## 1. Motivation
-- Retail/warehouse "pick from a list" is a real, hard robotics task: perception +
-  language + mobile navigation + manipulation.
-- **VLAs** (vision-language-action models) promise generalist robot control, but they
-  are large. **Can a capable VLA be fine-tuned and run on a single consumer 12 GB
-  GPU?** This project says: yes, for the manipulation half.
+## Results at a glance
 
-## 2. System
-| Component | Choice |
+| Test (SmolVLA, 15k-step checkpoint) | Task completion | Grasp |
+|---|---|---|
+| Fixed object positions (thesis headline, 4 items × 20 trials) | **80.0 %** (95 % CI 70–87) | 92.5 % |
+| Same, re-run with per-trial logging | 81.2 % (CI 71–88) | 91.2 % |
+| Objects jittered ±2.5 cm — the same noise as in the training data | **58.8 %** (CI 48–69) | 80.0 % |
+| Items moved to positions not seen in training | **0 / 216** reached the actual item | — |
+
+| Baseline / extension | Result |
 |---|---|
-| Simulator | **MuJoCo 3.9** (EGL headless rendering) |
-| Mobile base | **Omron LD-60 AGV** (robosuite mesh) |
-| Arm + gripper | **UR10e** + **Robotiq 2F-85** (MuJoCo Menagerie) |
-| Products | Real textured **robosuite grocery meshes** (milk, can, bread, cereal, bottle) |
-| Cameras | **wrist** (eye-in-hand) + **scene** (shelf-facing) + **basket** (drop target) |
-| Policy | **SmolVLA** fine-tuned from `lerobot/smolvla_base` (LeRobot) |
-| Hardware | **NVIDIA RTX A2000, 12 GB** (local, no cloud) |
+| ACT trained on all four items | 25.0 % (fixed), 13.8 % (jittered) |
+| ACT trained on one item (bread) | 100 % (fixed), 85 % (jittered) |
+| Shopping lists via a scripted orchestrator | 9 / 20 two-item and 6 / 20 three-item lists completed |
 
-*Custom-built scene* (not RoboCasa — that didn't suit local SmolVLA and is
-kitchen-only). Store aisle: stocked metal shelf + facing gondola + tile floor.
+All numbers are closed-loop rollouts with Wilson 95 % confidence intervals; the raw
+per-trial logs are in [`outputs/review/`](outputs/review).
 
-![Three camera views: a wrist eye-in-hand view of the gripper, a shelf-facing scene view, and a dedicated view of the drop-target basket.](thesis/figures/camera_views.png)
+## Key finding: the policy learned a shortcut, not visual grounding
 
-*Everything the policy sees, every step: three 96×96 RGB streams plus the 7-D arm
-state and the text instruction. **No object coordinates and no segmentation** are
-provided — any localisation has to come from pixels.*
+The language conditioning works — change only the instruction and the arm goes for
+the named item — but it works by **recall**, not by finding the item in the image.
+When items were moved to new positions (swapped, or shifted along the shelf), the arm
+went to where the named item **had been in training** in all 216 trials, and to where
+it actually was in none. The drop from 80 % to 58.8 % under ±2.5 cm jitter is the
+same effect at a smaller scale.
 
-## 3. Method (manipulation pipeline)
-```
-Scripted expert  →  demos (LeRobot)  →  SmolVLA fine-tune  →  closed-loop rollout
-```
+The cause is in the data: every item always sat in the **same shelf slot**, so the
+instruction alone predicted the reach target and the policy never needed the camera
+to choose where to go. With the vision-language backbone frozen and only 208
+demonstrations, the action expert learned that shortcut.
 
-![Four-stage pipeline: scripted expert with mink inverse kinematics producing 240 collected and 208 training demonstrations, a LeRobot dataset of three cameras plus state plus instruction, SmolVLA fine-tuning with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.](thesis/figures/fig_pipeline.png)
+A follow-up is in progress to test this directly: re-collect the demonstrations with
+items randomly assigned to shelf slots, raise the image resolution, compare a frozen
+and a vision-unfrozen backbone, and re-run the same three tests.
 
-1. **Scripted expert** — top-down grasp via **mink** IK (MuJoCo-native), frontal
-   extraction out of the shelf, carry, place. Per-item grasp tuning (yaw, height,
-   position). Expert success ≥ 96–100% per item.
+The ACT baselines frame the result: a single-task ACT policy is reliable, but ACT
+trained on all four items collapses to 25 %, while SmolVLA reaches 80 % on the same
+data — the pretrained backbone is what makes the multi-item, language-conditioned
+policy work at this data scale, even though it does not yet ground in the image.
 
-   ![Ten key frames of the scripted pick-and-place: home, pre-grasp, grasp, close, lift, extract, approach, at-basket, release, placed.](thesis/figures/pickplace_cola_can.png)
+---
 
-   *The ten phases of one scripted demonstration. The shelf bay is enclosed from
-   above, so the item is pulled **frontally** out of the shelf at grasp height rather
-   than lifted straight up.*
+## Method
 
-   ![Close-up of the Robotiq two-finger gripper descending on a product beside a cereal box on the shelf.](outputs/poster/grasp_closeup.png)
+![Pipeline: scripted expert with mink IK producing 240 demonstrations (208 train), a LeRobot dataset of three cameras, state and instruction, SmolVLA fine-tuning with a frozen backbone, and closed-loop evaluation with Wilson confidence intervals.](thesis/figures/fig_pipeline.png)
 
-   *Why the cereal box is excluded: the two-finger gripper is rigid and the robosuite
-   meshes are smooth, so its wide face slips during transport.*
-2. **Demos** — records wrist+scene+basket images (96×96), 7-DOF state & action, and a
-   **language instruction** (6 paraphrase templates × items). Only *successful*
-   episodes saved; per-episode position jitter; **episodes end at "placed"** (clean
-   boundary). 240 episodes → LeRobot dataset (~20 fps, 208 train / 32 val).
-3. **SmolVLA fine-tune** — **freeze** the pretrained vision+language backbone, train
-   only the **action expert** (maps scene features + instruction → joint angles).
-   Batch 8, 20 k steps, ~4 h, ~3 GB VRAM.
+1. **Scene** (`envs/supermarket_env.py`) — UR10e and Robotiq 2F-85 from MuJoCo
+   Menagerie on robosuite's Omron LD-60 base, a stocked shelf of robosuite's textured
+   grocery meshes, and a tote on the base deck.
+2. **Scripted expert** (`scripts/scripted_expert.py`, `scripts/find_grasp.py`) —
+   top-down grasp via [mink](https://github.com/kevinzakka/mink) inverse kinematics,
+   frontal extraction from the shelf bay, carry, place. 96–100 % success per item
+   under the ±2.5 cm jitter. The cereal box is excluded: its wide smooth face slips in
+   the two-finger gripper.
+3. **Demonstrations** (`scripts/collect_data.py`, `scripts/convert_to_lerobot.py`) —
+   240 successful episodes (208 train / 32 validation) at ~20 Hz, each with a
+   paraphrased instruction (6 templates per item), saved as a LeRobot dataset.
+4. **Fine-tuning** — SmolVLA from `lerobot/smolvla_base`, backbone frozen, action
+   expert trained: batch 8, 20k steps, ~4 h and ~3 GB of GPU memory.
+5. **Evaluation** (`scripts/rollout.py`, `scripts/eval_checkpoints.py`) — closed-loop
+   rollouts, ≥ 20 trials per item, checkpoints chosen by task success rather than loss.
 
-**Why freezing works:** the pretrained backbone (SmolVLM + community robot data)
-already *sees* and *reads*; we only learn *how this robot acts* → 208 demos suffice.
+![The three camera views: wrist, shelf-facing scene, and basket.](thesis/figures/camera_views.png)
 
-## 4. Results
+![Ten key frames of a scripted pick-and-place: home, pre-grasp, grasp, close, lift, extract, approach, at-basket, release, placed.](thesis/figures/pickplace_cola_can.png)
 
-### Final policy (v2, deployed 15k checkpoint)
-> The subsections below are the **v1** history, kept for the diagnosis story. These
-> are the figures that supersede them.
+### From 0 % to 80 % placement
 
-**80% task completion** (95% Wilson CI 70–87) and **92.5% grasp**, over 320
-closed-loop trials across four checkpoints — measured at a **fixed object pose**.
+The first policy grasped 75 % of the time but placed 0 %: it carried the item to
+within ~2 cm of the basket and released it ~10 cm short. Three changes fixed it —
+ending each demonstration cleanly at "placed", adding a dedicated basket camera (the
+drop target was barely visible before), and widening the tote.
 
-![Bar chart of per-item task completion with Wilson 95% confidence intervals: cola can 95%, water bottle 90%, bread loaf 75%, milk carton 60%, against an overall 80% line.](thesis/figures/per_item_success.png)
+### Per-item and checkpoint results
 
-![Line chart of task completion against training step: 69% at 5k and 10k, 80% at 15k, 75% at 20k, with overlapping confidence intervals.](thesis/figures/checkpoint_selection.png)
+![Per-item task completion with Wilson 95 % CIs: cola can 95 %, water bottle 90 %, bread loaf 75 %, milk carton 60 %.](thesis/figures/per_item_success.png)
 
-*Checkpoints are selected by **closed-loop success, not loss** — the final checkpoint
-is not the best. At n=80 the four are not statistically distinguishable (McNemar, all
-p ≥ 0.19), so the ranking picks a deployment snapshot rather than claiming
-significance.*
+![Task completion against training step: 69 % at 5k and 10k, 80 % at 15k, 75 % at 20k.](thesis/figures/checkpoint_selection.png)
 
-Two caveats the thesis establishes and this README should not hide: under the same
-±2.5 cm jitter the training data itself contained, completion falls to **58.8%**; and
-a displacement test over 216 trials shows the policy reaches where each item **was in
-training**, never where it actually is — the language conditioning is *recall*, not
-visual grounding.
+The four checkpoints are not statistically distinguishable on placement (McNemar
+exact test, all p ≥ 0.19), so 15k is a deployment choice rather than a significant
+optimum.
 
-### First policy (v1)
-- **Grasp: 75%** (9/12). **Place: 0%** (0/12). *(small sample — reported with the
-  caveat that ≥20 trials/item + Wilson 95% CIs are needed for real claims.)*
-- **Language grounding — proven.** Same scene, change only the instruction → the arm
-  reaches the *named* item:
+---
 
-  | instruction | item location (y) | gripper reached (y) |
-  |---|---|---|
-  | "milk carton" | −0.26 | **−0.24** |
-  | "loaf of bread" | 0.00 | **−0.01** |
-  | "water bottle" | +0.34 | **+0.29** |
+## Reproducing
 
-- **Diagnosis of place = near-misses, not failure.** Traced: the policy grasps,
-  carries, and lowers the item to within **~2 cm** of the basket, then drops it
-  **~10 cm short** (rolls out) and doesn't cleanly stop. So perception + language +
-  grasp + transport all work; the gap is **final-drop precision + termination**.
+The trained checkpoints and the dataset from the thesis were not kept, so the
+pipeline below regenerates them from scratch.
 
-### Targeted fixes (v2, in progress) — four changes, all aimed at placing
-1. **Clean episode boundary** (demo ends at "placed" — removes post-place flailing).
-2. **Basket camera** (dedicated drop-target view — the policy could previously barely
-   see the basket).
-3. **Wider tote** (forgives the ~10 cm miss).
-4. *(Optional / shelved: vision-encoder unfreeze — memory-heavy + overfit risk.)*
-
-## 5. Key contributions (poster bullets)
-- A **complete, reproducible VLA manipulation pipeline** on a **12 GB** GPU:
-  scripted expert → LeRobot dataset → SmolVLA fine-tune → closed-loop eval.
-- **Language-conditioned item selection** demonstrated (reaches the correct named
-  item among distractors).
-- A **quantified failure analysis** turning "0% place" into an actionable diagnosis
-  (near-miss precision + observation + episode-boundary bug), each addressed.
-- **Honest ML methodology**: frozen-backbone rationale, normalization frozen with the
-  checkpoint, checkpoint selection by *success rate* not loss, Wilson-CI reporting.
-
-## 6. Figures (files on disk → poster use)
-| File | Poster use |
-|---|---|
-| `outputs/poster/robot_hero_front.png` | **Hero image** — robot reaching into the shelf |
-| `outputs/poster/robot_and_shelf.png` | System / workspace overview |
-| `outputs/poster/grasp_closeup.png` | Manipulation detail (gripper + product) |
-| `outputs/poster/wrist_pov.png` | "Robot's-eye" wrist view |
-| `outputs/stage1/dataset_preview.png` | Data: wrist+scene filmstrip across a pick-place |
-| `outputs/stage1/basket_visibility.png` | Motivation for the basket camera (poor visibility) |
-| `outputs/stage1/basket_cam.png` | The fix: clear drop-target view |
-| `outputs/stage1/pickplace_cola_can.png` | Method: scripted expert key frames |
-| `outputs/stage1/rollout.png` | Result: closed-loop policy behaviour |
-
-**Plots still to generate:** language-grounding bar chart (table in §4), success-rate
-with Wilson CIs, v1-vs-v2 comparison, checkpoint-selection curve, system block diagram.
-
-## 7. Suggested poster layout (4-column)
-1. **Title + one-liner + hero image** (`robot_hero_front.png`) + Motivation.
-2. **System & Method** — the pipeline arrow diagram, `pickplace_cola_can.png`,
-   the 3-camera setup (`basket_cam.png`), "freeze backbone → learn action expert".
-3. **Data & Training** — `dataset_preview.png`, dataset numbers, the "why 208 demos
-   is enough" (frozen pretrained backbone) point.
-4. **Results & Next** — language-grounding table/plot, grasp/place numbers with CIs,
-   the near-miss diagnosis figure, and "Next: dynamic store + navigation VLA".
-
-## 8. Repo (how to run)
 ```bash
-# env deps live in ../smolvla_ur10e/.venv (symlinked as .venv); render needs EGL
-MUJOCO_GL=egl .venv/bin/python scripts/verify_scene.py          # sanity-check the scene
-MUJOCO_GL=egl .venv/bin/python scripts/scripted_expert.py --product cola_can   # one scripted pick-place
-MUJOCO_GL=egl .venv/bin/python scripts/collect_data.py --n 60   # collect demos
-MUJOCO_GL=egl .venv/bin/python scripts/convert_to_lerobot.py    # -> LeRobotDataset
-.venv/bin/python -m lerobot.scripts.lerobot_train  ...          # fine-tune SmolVLA (see REPORT_NOTES)
-MUJOCO_GL=egl .venv/bin/python scripts/rollout.py --checkpoint <ckpt> --view   # watch the policy
+pip install -r requirements.txt
+# MuJoCo Menagerie is downloaded automatically on first use via robot_descriptions,
+# or set MUJOCO_MENAGERIE_DIR to an existing checkout.
+
+python scripts/verify_scene.py                         # build the scene, save check images
+python scripts/scripted_expert.py --product cola_can   # one scripted pick-and-place
+python scripts/collect_data.py --n 60                  # 60 successful demos per item
+python scripts/convert_to_lerobot.py                   # -> LeRobot dataset in data/
+
+python -m lerobot.scripts.lerobot_train \
+    --dataset.repo_id=local/supermarket_manip \
+    --dataset.root=data/supermarket_manip_lerobot \
+    --policy.type=smolvla --policy.pretrained_path=lerobot/smolvla_base \
+    --policy.push_to_hub=false --output_dir=outputs/train/smolvla_supermarket_v2 \
+    --batch_size=8 --steps=20000 --save_freq=5000 --eval_freq=0 --wandb.enable=false
+
+CKPT=outputs/train/smolvla_supermarket_v2/checkpoints/015000/pretrained_model
+python scripts/eval_checkpoints.py --run outputs/train/smolvla_supermarket_v2
+python scripts/rollout.py --checkpoint $CKPT --view       # watch it
+python scripts/exp3_grounding.py --checkpoint $CKPT --mode all   # displacement test
 ```
-Key files: `envs/supermarket_env.py`, `scripts/{find_grasp,scripted_expert,collect_data,convert_to_lerobot,train_smolvla,rollout}.py`, `shared/instruction_templates.py`.
 
-## 9. Status & next steps
-- **Done:** scene, scripted expert (4/5 items), data pipeline, first SmolVLA fine-tune,
-  failure diagnosis, v2 dataset + the four targeted fixes.
-- **In progress:** v2 retraining (frozen-backbone config) + rigorous multi-checkpoint
-  eval (5k/10k/15k/20k) by *closed-loop success rate*, ≥20 trials/item, Wilson 95% CIs.
-- **Next (Part B / "Stage 2"): navigation** — dynamic store with **moving, colliding
-  shoppers**, reactive scripted navigator → nav demos → **navigation VLA** →
-  **orchestrator** that runs the full shopping list and delivers.
+On a headless Linux machine set `MUJOCO_GL=egl` for offscreen rendering; leave it unset
+for the interactive viewer (`--view`).
 
-## 10. Constraints (context for the poster's "challenges")
-- **12 GB VRAM** shaped every training decision (frozen backbone, batch tuning).
-- **Local SmolVLA only** (no cloud); bigger VLAs (π0, OpenVLA, MolmoAct2) would need
-  cloud/HPC — the designated upgrade path.
+## Repository layout
+
+```
+envs/supermarket_env.py    MuJoCo scene (robot, base, shelf, products, cameras)
+scripts/                   scripted expert, data collection, training, evaluation,
+                           review experiments (exp*.py) and figure generation (make_*.py)
+shared/                    instruction templates
+outputs/review/            per-trial logs of the evaluation and review experiments
+thesis/                    the thesis LaTeX source (Cranfield template; compile with
+                           pdfLaTeX + biber, e.g. on Overleaf)
+```
+
+## Limitations and future work
+
+- **Simulation only**, and the reported 80 % holds at fixed object positions — see the
+  key finding above.
+- **Navigation is not implemented.** The original plan was a two-model system — this
+  manipulation policy plus a navigation VLA and an orchestrator for a store with
+  moving shoppers. Only the manipulation half was built; the base stays parked.
+- **Four items.** The cereal box was dropped because the rigid two-finger gripper
+  cannot hold its smooth wide face.
+
+## Licence
+
+Code: MIT (see [LICENSE](LICENSE)). Third-party assets loaded at run time — MuJoCo
+Menagerie models, robosuite meshes and the SmolVLA weights — keep their own licences.
